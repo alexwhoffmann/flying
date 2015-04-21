@@ -74,11 +74,7 @@ ADD_EXECUTABLE(Haptics
         Main.cpp
         Assignment.h
         1_HelloWorld.h
-        2_ReadDevicePosition.h
-        3_BasicForceEffects.h
-        4_HapticWall.h
-        5_MagneticEffect.h
-        6_HapticSphere.h
+        1_HelloWorld_fins.h
 )
 
 IF(MSVC)

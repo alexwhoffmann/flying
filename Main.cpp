@@ -30,11 +30,6 @@
 #include "Assignment.h"
 
 #include "1_HelloWorld.h"
-#include "2_ReadDevicePosition.h"
-#include "3_BasicForceEffects.h"
-#include "4_HapticWall.h"
-#include "5_MagneticEffect.h"
-#include "6_HapticSphere.h"
 //---------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------
@@ -158,11 +153,6 @@ int main(int argc, char* argv[])
 
 	// Load the available assignment scenes
 	assignments.push_back(new HelloWorld());
-	assignments.push_back(new ReadDevicePosition());
-	assignments.push_back(new BasicForceEffects());
-	assignments.push_back(new HapticWall());
-	assignments.push_back(new MagneticEffect());
-	assignments.push_back(new HapticSphere());
 
 	//-----------------------------------------------------------------------
 	// HAPTIC DEVICES / TOOLS

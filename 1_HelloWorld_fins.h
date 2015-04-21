@@ -118,7 +118,7 @@ void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeSt
     hapticDevice->getPosition(newPosition);
 
     //normalize value of Y.
-    if(newPosition.y <= 0.04 and newPosition.y >= -0.04){
+    if (newPosition.y <= 0.04 and newPosition.y >= -0.04){
         positionY = newPosition.y/0.04;
     }else if(newPosition.y > 0.04){
          positionY = 1.0;
@@ -129,15 +129,15 @@ void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeSt
     double newYLeft, newZLeft;
     double radiant = positionY * -maxAngle * PI / 180.0 ;
 
-    std::cout<<"radiant = "<<radiant<<std::endl;
-    newYRight = (cos(radiant)*(finRadius+fishRadius));
-    newZRight = (sin(radiant)*(finRadius+fishRadius));
-    newPosition.set(0,newYRight,newZRight);
+    std::cout << "radiant = " << radiant << std::endl;
+    newYRight = (cos(radiant) * (finRadius + fishRadius));
+    newZRight = (sin(radiant) * (finRadius + fishRadius));
+    newPosition.set(0, newYRight, newZRight);
     bodyFinR->setPos(newPosition);
 
     newYLeft = -(cos(radiant)*(finRadius+fishRadius));
     newZLeft = -(sin(radiant)*(finRadius+fishRadius));
-    newPosition.set(0,newYLeft,newZLeft);
+    newPosition.set(0, newYLeft, newZLeft);
     bodyFinL->setPos(newPosition);
 	// Update position and orientation of cursor
 
