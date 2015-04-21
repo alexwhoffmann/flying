@@ -2,20 +2,28 @@
 #define HELLOWORLD_H
 
 #include "Assignment.h"
-
 #include "chai3d.h"
+
+#include <cstdlib>
+
+# define PI          3.141592653589793238462643383279502884L /* pi */
 
 class fish {
 private:
 public:
     cVector3d pos;
-    cVector3d fin1RelPos;
-    cVector3d fin2RelPos;
+
+    cShapeSphere* bodyFinR;
+    cShapeSphere* bodyFinL;
+
+    double finRadius;
+    double fishRadius;
+    double maxAngle;
 
     cVector3d vel;
     cVector3d f;
 
-    cVector3d rot;
+    cVector3d rot; //yaw, pitch, roll
     cVector3d rotVel;
     cVector3d rotF;
 
@@ -24,41 +32,61 @@ public:
 
     cShapeSphere* body;
 
-    //methods
     fish();
 
-    cVector3d getFinPos(int finIndex) {
-        if (finIndex == 0) {
-            return (pos + fin1RelPos);
-        } else if (finIndex == 1) {
-            return (pos + fin2RelPos);
+    void updateFishFins(double timeStep, cVector3d hapticPosition) {
+
+        //Update the graphical position of the fish fins
+        cVector3d newFinPos;
+        double relYPos;
+
+        //normalize value of Y.
+        if (hapticPosition.y <= 0.04 and hapticPosition.y >= -0.04){
+            relYPos = hapticPosition.y / 0.04;
+        } else if(hapticPosition.y > 0.04){
+             relYPos = 1.0;
+        } else if(hapticPosition.y < -0.04){
+            relYPos = -1.0;
         }
-    }
 
-    void updateFishFins(double timeStep, cVector3d left, cVector3d right) {
-        //calculates pushing force
+        double newYRight, newZRight;
+        double newYLeft, newZLeft;
+        double radians = relYPos * -maxAngle * PI / 180.0 ;
 
-        cVector3d forward = cVector3d(left.x + right.x, 0.0, 0.0);
-        f += forward;
+        //std::cout << "radians = " << radians << std::endl;
+        newYRight = (cos(radians) * (finRadius + fishRadius));
+        newZRight = (sin(radians) * (finRadius + fishRadius));
+        bodyFinR->setPos(body->getPos() + cVector3d(0, newYRight, newZRight));
 
-        //std::cout << "Left: " << left.str() << std::endl;
-        std::cout << "vel: " << vel.str() << std::endl;
+        newYLeft = -(cos(radians)*(finRadius+fishRadius));
+        newZLeft = -(sin(radians)*(finRadius+fishRadius));
+        bodyFinL->setPos(body->getPos() + cVector3d(0, newYLeft, newZLeft));
+
+
+        //change rot
+        //cMatrix3d rotValue = cMatrix3d();
+        //rotValue.set(, );
+        //rot->setRot(rotValue);
+
+        //add forces to fish
+        if (hapticPosition.x < 0.0) {
+            f.add(hapticPosition.x,0,0);
+        }
     }
 
     void updatePhysics(double timeStep) {
         vel += timeStep * f / m;
         f = cVector3d(0.0, 0.0, 0.0);
 
+        pos = body->getPos();
         pos += timeStep*vel;
-
         body->setPos(pos);
     }
+
+
 };
 
 fish::fish() {
-    fin1RelPos = cVector3d(0.0, 0.03, 0.0);
-    fin2RelPos = cVector3d(0.0, -0.03, 0.0);
-
     pos = cVector3d();
     vel = cVector3d();
     f = cVector3d();
@@ -69,7 +97,17 @@ fish::fish() {
 
     m = 1.0; //1.0 kg
 
-    body = new cShapeSphere(0.01);
+    finRadius = 0.005;
+    fishRadius = 0.01;
+    maxAngle = 60;
+
+    body = new cShapeSphere(fishRadius);
+
+    bodyFinR = new cShapeSphere(finRadius);
+    bodyFinL = new cShapeSphere(finRadius);
+
+    bodyFinR->setPos(0,0.015,0);
+    bodyFinL->setPos(0,-0.015,0);
 }
 
 /*
@@ -114,9 +152,9 @@ private:
     //FISH STUFF
     cShapeSphere *sphere;
 
+public:
     fish *myFish;
 
-public:
     virtual std::string getName() const { return "1: Hello World"; }
 
 	virtual void initialize(cWorld* world, cCamera* camera);
@@ -125,25 +163,63 @@ public:
 
 	virtual void updateGraphics();
 	virtual void updateHaptics(cGenericHapticDevice* hapticDevice, double timeStep, double totalTime);
+
+    virtual void addBubbles();
 };
+
+/*
+*cVector3d getRandomCVector3d(double minX, double maxX, ) {
+    cVector3d =
+}
+*/
+
+/*
+cBitmap* getBitmap(String filename) {
+
+}
+*/
+
+void HelloWorld::addBubbles() {
+    int numBubbles = 250;
+    double x, y, z;
+    for (int i = 0; i < numBubbles; i++) {
+
+        //cBitmap bitmap;
+
+        cShapeSphere* bubble;
+        bubble = new cShapeSphere(0.08);
+
+        x = -(double)(rand() % 1000)/100.0;
+        y = (double)(rand() % 1000)/100.0 - 5.0;
+        z = (double)(rand() % 1000)/100.0 - 5.0;
+
+        bubble->setPos(cVector3d(x,y,z));
+        myWorld->addChild(bubble);
+    }
+}
+
 
 void HelloWorld::initialize(cWorld* world, cCamera* camera)
 {
+    srand(42);
+
     myWorld = world;
     myCamera = camera;
 
     //Change the background
-    world->setBackgroundColor(0.0f, 0.4f, 0.0f);
+    myWorld->setBackgroundColor(0.0f, 0.4f, 0.0f);
 
 	// Create a cursor with its radius set
-	m_cursor = new cShapeSphere(0.01);
+    m_cursor = new cShapeSphere(0.0001);
 	// Add cursor to the world
-	world->addChild(m_cursor);
+    myWorld->addChild(m_cursor);
+
+    addBubbles();
 
 	// Create a small line to illustrate velocity
 	m_velocityVector = new cShapeLine(cVector3d(0, 0, 0), cVector3d(0, 0, 0));
 	// Add line to the world
-	world->addChild(m_velocityVector);
+    myWorld->addChild(m_velocityVector);
 
 	// Here we define the material properties of the cursor when the
 	// user button of the device end-effector is engaged (ON) or released (OFF)
@@ -177,15 +253,17 @@ void HelloWorld::initialize(cWorld* world, cCamera* camera)
     //cShapeLine *myLine = new cShapeLine(cVector3d(0,0.02,1),cVector3d(0,0.02,-1));
     //world->addChild();
 
-    world->addChild(myFish->body);
+    myWorld->addChild(myFish->body);
 
-
+    myWorld->addChild(myFish->bodyFinR);
+    myWorld->addChild(myFish->bodyFinL);
 
     //Trying to create the sea floor vertices
     //vector<unsigned int> terrainTriangleIndices
     //terrainTriangleIndices.reserve(100);
 
 
+    /*
     cVector3d pos = cVector3d(-0.1,0,0);
     cVector3d p0 = cVector3d(0.0, 0.0, 0.0);
     cVector3d p1 = cVector3d(0.0, 0.1, 0.0);
@@ -196,6 +274,7 @@ void HelloWorld::initialize(cWorld* world, cCamera* camera)
     pos = cVector3d(-0.1,0,-0.1);
     object = addTriangle(pos, p0, p1, p2, cColorf(0.8,0,0));
     terrainTriangleIndices.push_back(object);
+    */
 }
 
 cMesh* HelloWorld::addTriangle(cVector3d pos, cVector3d p0, cVector3d p1, cVector3d p2, cColorf color) {
@@ -224,7 +303,12 @@ cMesh* HelloWorld::addTriangle(cVector3d pos, cVector3d p0, cVector3d p1, cVecto
 
 void HelloWorld::updateGraphics()
 {
-	std::stringstream ss;
+    myCamera->set(myFish->body->getPos() + cVector3d(0.2, 0.0, 0.0),    // camera position (eye)
+                  myFish->body->getPos(),    // lookat position (target)
+        cVector3d(0.0, 0.0, 1.0));   // direction of the "up" vector
+
+    //myCamera->
+    std::stringstream ss;
 
 	ss << "You can add debug output like this: " << m_cursor->getPos().length() * 1000.0
 		<< " mm (Distance from center)";
@@ -238,19 +322,19 @@ void HelloWorld::updateGraphics()
 void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeStep, double totalTime)
 {
 	//Read the current position of the haptic device
-	cVector3d newPosition;
-	hapticDevice->getPosition(newPosition);
+    cVector3d hapticPosition;
+    hapticDevice->getPosition(hapticPosition);
 
 	// Update position and orientation of cursor
-	m_cursor->setPos(newPosition);
+    m_cursor->setPos(hapticPosition);
 
 	// Read linear velocity from device
 	cVector3d linearVelocity;
 	hapticDevice->getLinearVelocity(linearVelocity);
 
 	// Update the line showing velocity
-	m_velocityVector->m_pointA = newPosition;
-	m_velocityVector->m_pointB = newPosition + linearVelocity;
+    m_velocityVector->m_pointA = hapticPosition;
+    m_velocityVector->m_pointB = hapticPosition + linearVelocity*0.2;
 
 	// Read user button status
 	bool buttonStatus;
@@ -261,19 +345,9 @@ void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeSt
 
     //Do stuff with the terrain
     for(int i = 0; i < terrainTriangleIndices.size(); ++i) {
-        //std::cout << "before" << std::endl;
-        //((cMesh*)myWorld->(terrainTriangleIndices[i]))->setPos(0.1*cSinRad(4*totalTime),0,0);
-
-        //cVector3d v;
-
-
-        //terrainTriangleIndices[i]->setPos(0.1*cSinRad(4*totalTime),0,0);
-        //terrainTriangleIndices[i]->rotate(cVector3d(0,1,0), totalTime);
         cMatrix3d rotValue = cMatrix3d();
         rotValue.set(cVector3d(0,1,0), 2*totalTime);
         terrainTriangleIndices[i]->setRot(rotValue);
-        //object->rotate(cVector3d(0,1,0), time);
-        //std::cout << "after" << std::endl;
     }
 
 
@@ -282,18 +356,11 @@ void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeSt
 	// the user switch (ON = TRUE / OFF = FALSE)
 	m_cursor->m_material = buttonStatus ? m_matCursorButtonON : m_matCursorButtonOFF;
 
-    if (buttonStatus) {
-        myFish->updateFishFins(timeStep, newPosition, newPosition);
-    }
-
+    myFish->updateFishFins(timeStep, hapticPosition);
     myFish->updatePhysics(timeStep);
 
 	cVector3d force(0, 0, 0);
-
-	//Pull towards center
-    //force = -5.0f * newPosition;
-
-	//Set a force to the haptic device
+    //Set a force to the haptic device
 	hapticDevice->setForce(force);
 }
 

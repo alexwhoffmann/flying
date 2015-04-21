@@ -102,8 +102,10 @@ void HelloWorld::updateGraphics()
 {
 	std::stringstream ss;
 
-	ss << "You can add debug output like this: " << m_cursor->getPos().length() * 1000.0
-		<< " mm (Distance from center)";
+    ss << "You can add debug output like this: " << body->getPos().length() * 1000.0
+            << " mm (Distance from center)";
+    //ss << "You can add debug output like this: " << m_cursor->getPos().length() * 1000.0
+        //<< " mm (Distance from center)";
 
 	m_debugLabel->m_string = ss.str();
 
@@ -120,9 +122,9 @@ void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeSt
     //normalize value of Y.
     if (newPosition.y <= 0.04 and newPosition.y >= -0.04){
         positionY = newPosition.y/0.04;
-    }else if(newPosition.y > 0.04){
+    } else if(newPosition.y > 0.04){
          positionY = 1.0;
-    }else if(newPosition.y < -0.04){
+    } else if(newPosition.y < -0.04){
         positionY = -1.0;
     }
     double newYRight, newZRight;
@@ -156,7 +158,8 @@ void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeSt
 
 	// Adjust the color of the cursor according to the status of
 	// the user switch (ON = TRUE / OFF = FALSE)
-	m_cursor->m_material = buttonStatus ? m_matCursorButtonON : m_matCursorButtonOFF;
+    //m_cursor->m_material = buttonStatus ? m_matCursorButtonON : m_matCursorButtonOFF;
+    body->m_material = buttonStatus ? m_matCursorButtonON : m_matCursorButtonOFF;
 
 	cVector3d force(0, 0, 0);
 

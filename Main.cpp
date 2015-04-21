@@ -30,6 +30,7 @@
 #include "Assignment.h"
 
 #include "1_HelloWorld.h"
+//#include "1_HelloWorld_fins.h"
 //---------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------
@@ -153,6 +154,7 @@ int main(int argc, char* argv[])
 
 	// Load the available assignment scenes
 	assignments.push_back(new HelloWorld());
+    //assignments.push_back(new HelloWorldFins());
 
 	//-----------------------------------------------------------------------
 	// HAPTIC DEVICES / TOOLS
@@ -258,14 +260,17 @@ void reset(size_t assignmentId)
 
 	// Set the near and far clipping planes of the camera
 	// anything in front/behind these clipping planes will not be rendered
-	camera->setClippingPlanes(0.01, 10.0);
+    camera->setClippingPlanes(0.01, 50.0);
 
 	// Create a light source and attach it to the camera
 	light = new cLight(world);
 	camera->addChild(light);                   // attach light to camera
 	light->setEnabled(true);                   // enable light source
-	light->setPos(cVector3d(2.0, 0.5, 1.0));  // position the light source
+    //light->setPos(cVector3d(2.0, 0.5, 1.0));  // position the light source
 	light->setDir(cVector3d(-2.0, 0.5, 1.0));  // define the direction of the light beam
+
+    //light->setPos(cVector3d(0.0, 0.0, 500000.0));  // position the light source
+    light->setPos(cVector3d(0.0, 0.0, 149.6e9));  // position the light source
 
 	// Create a label that shows the haptic loop update rate
 	rateLabel = new cLabel();
@@ -382,8 +387,13 @@ void updateGraphics(void)
 		positionLabel->m_string = buffer;
 	}
 
-	if (assignments[currentAssignment]->isInitialized())
+    if (assignments[currentAssignment]->isInitialized()) {
 		assignments[currentAssignment]->updateGraphics();
+
+        //assignments[currentAssignment]->myFish->body->getPos();
+
+        //light->setPos(cVector3d(2.0, 0.5, 1.0));  // position the light source
+    }
 
 	// Update the label with the haptic refresh rate
 	char buffer[128];
