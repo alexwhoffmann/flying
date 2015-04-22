@@ -91,7 +91,7 @@ fish::fish() {
     vel = cVector3d();
     f = cVector3d();
 
-    rot = cVector3d();
+    rot = cVector3d(-1, 0, 0);// assumed this is the direction he looks
     rotVel = cVector3d();
     rotF = cVector3d();
 
@@ -152,6 +152,9 @@ private:
     //FISH STUFF
     cShapeSphere *sphere;
 
+    // moved distance of the fish
+    cVector3d distance;
+
 public:
     fish *myFish;
 
@@ -164,7 +167,8 @@ public:
 	virtual void updateGraphics();
 	virtual void updateHaptics(cGenericHapticDevice* hapticDevice, double timeStep, double totalTime);
 
-    virtual void addBubbles();
+    virtual void initBubbles();
+    virtual void updateBubbles();
 };
 
 /*
@@ -179,22 +183,41 @@ cBitmap* getBitmap(String filename) {
 }
 */
 
-void HelloWorld::addBubbles() {
+void HelloWorld::initBubbles() {
     int numBubbles = 250;
     double x, y, z;
+
+
     for (int i = 0; i < numBubbles; i++) {
 
-        //cBitmap bitmap;
+        //cBitmap bitmap
 
         cShapeSphere* bubble;
         bubble = new cShapeSphere(0.08);
 
-        x = -(double)(rand() % 1000)/100.0;
-        y = (double)(rand() % 1000)/100.0 - 5.0;
+        x = -(double)(rand() % 1000)/100.0; // 10 m to the front
+        y = (double)(rand() % 1000)/100.0 - 5.0; // 5 m radius
         z = (double)(rand() % 1000)/100.0 - 5.0;
 
         bubble->setPos(cVector3d(x,y,z));
         myWorld->addChild(bubble);
+    }
+}
+
+void HelloWorld::updateBubbles() {
+    for( int a = 0; a < 3; a = a + 1 ){
+
+    double y, z;
+    cShapeSphere* bubble;
+    bubble = new cShapeSphere(0.08);
+    cVector3d direction = myFish->rot;
+    cVector3d position = myFish->pos;
+    // x is set below
+    y = (double)(rand() % 1000)/100.0 - 5.0; // 5 m radius
+    z = (double)(rand() % 1000)/100.0 - 5.0;
+    bubble->setPos(cVector3d((position + (direction * 10)).x,y,z));
+    myWorld->addChild(bubble);
+    //std::cout << "New bubble at:" << bubble->getPos() << std::endl;
     }
 }
 
@@ -214,7 +237,7 @@ void HelloWorld::initialize(cWorld* world, cCamera* camera)
 	// Add cursor to the world
     myWorld->addChild(m_cursor);
 
-    addBubbles();
+    initBubbles();
 
 	// Create a small line to illustrate velocity
 	m_velocityVector = new cShapeLine(cVector3d(0, 0, 0), cVector3d(0, 0, 0));
@@ -349,9 +372,27 @@ void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeSt
         rotValue.set(cVector3d(0,1,0), 2*totalTime);
         terrainTriangleIndices[i]->setRot(rotValue);
     }
+    // add new bubbles in the distance
+  /* float timeSpan;
+   timeSpan = timeSpan + timeStep;
+   if(timeSpan > 1.0){
+        timeSpan = 0.0;
+        updateBubbles();
+    }
 
+    */
+    distance += timeStep*myFish->vel;
+    if(distance.length() > 1.00){
+        distance = cVector3d(0,0,0);
+        updateBubbles();
+    }
+   /* vel += timeStep * f / m;
+    f = cVector3d(0.0, 0.0, 0.0);
 
-
+    pos = body->getPos();
+    pos += timeStep*vel;
+    body->setPos(pos);
+*/
     // Adjust the color of the cursor according to the status of
 	// the user switch (ON = TRUE / OFF = FALSE)
 	m_cursor->m_material = buttonStatus ? m_matCursorButtonON : m_matCursorButtonOFF;
