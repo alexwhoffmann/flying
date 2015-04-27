@@ -51,7 +51,7 @@ const int MAX_DEVICES = 8;
 //---------------------------------------------------------------------------
 // DECLARED VARIABLES
 //---------------------------------------------------------------------------
-// hey
+
 // A list of all available assignments
 std::vector<Assignment*> assignments;
 volatile size_t currentAssignment = 0;
