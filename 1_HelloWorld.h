@@ -7,6 +7,10 @@
 #include <cstdlib>
 
 # define PI          3.141592653589793238462643383279502884L /* pi */
+// root resource path
+string resourceRoot;
+// convert to resource path
+#define RESOURCE_PATH(p)    (char*)((resourceRoot+string(p)).c_str())
 
 class fish {
 private:
@@ -155,8 +159,8 @@ private:
     // moved distance of the fish
     cVector3d distance;
 
-
-    cBitmap* bubbleBitmap;
+    // bitmap of the bubbles
+    cTexture2D* bubbleBitmap;
 
 public:
     fish *myFish;
@@ -172,6 +176,7 @@ public:
 
     virtual void initBubbles();
     virtual void updateBubbles();
+    virtual void loadBitmap(cShapeSphere* bubble);
 };
 
 /*
@@ -187,6 +192,17 @@ cBitmap* getBitmap(String filename) {
 */
 
 void HelloWorld::initBubbles() {
+    // load the bubble bitmap
+    bubbleBitmap = new cTexture2D();
+    bool fileload = bubbleBitmap->loadFromFile(RESOURCE_PATH("bubble.bmp"));
+    if (!fileload)
+    {
+        #if defined(_MSVC)
+        fileload = bubbleBitmap->loadFromFile("../haptics_lab1/bubble.bmp");
+        #endif
+    }
+
+
     int numBubbles = 250;
     double x, y, z;
 
@@ -203,6 +219,8 @@ void HelloWorld::initBubbles() {
         z = (double)(rand() % 1000)/100.0 - 5.0;
 
         bubble->setPos(cVector3d(x,y,z));
+        // add texture
+        loadBitmap(bubble);
         myWorld->addChild(bubble);
     }
 }
@@ -219,18 +237,29 @@ void HelloWorld::updateBubbles() {
 
     x = (direction.x * cos(90)) - (direction.y * sin(90));
     y = (direction.y * cos(90)) - (direction.x * sin(90));
-    x = bubble->getPos().x + ((double)(rand() % 100)/100 * x);
-    y = bubble->getPos().y + ((double)(rand() % 100)/100 * y);
+    x = bubble->getPos().x + ((double)(rand() % 100)/100 * x * 10) - 5;
+    y = bubble->getPos().y + ((double)(rand() % 100)/100 * y * 10) - 5;
     z = bubble->getPos().z + (double)(rand() % 1000)/100.0 - 5.0; //height is +- 5m from absolut pos
 
     //x = (position + (direction * 10)).x;
     //y = (double)(rand() % 1000)/100.0 - 5.0; // 5 m radius
 
-
+    loadBitmap(bubble);
     bubble->setPos(cVector3d(x,y,z));
     myWorld->addChild(bubble);
     //std::cout << "New bubble at:" << bubble->getPos() << std::endl;
     }
+}
+
+// load the bitmap and add it to the spheres
+void HelloWorld::loadBitmap(cShapeSphere* bubble)
+{
+    // create a texture file
+    bubble->m_texture = bubbleBitmap;
+    bubble->m_texture->setSphericalMappingEnabled(true);
+    bubble->setUseTexture(true);
+    bubble->setTransparencyLevel(0.6, true, true);
+    std::cout << "Texture applied:" << std::endl;
 }
 
 
