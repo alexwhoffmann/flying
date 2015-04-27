@@ -70,7 +70,7 @@ public:
 
         //add forces to fish
         if (hapticPosition.x < 0.0) {
-            f.add(hapticPosition.x,0,0);
+            f.add(timeStep * hapticPosition.x * 1000.0, 0, 0);
         }
     }
 
@@ -155,6 +155,9 @@ private:
     // moved distance of the fish
     cVector3d distance;
 
+
+    cBitmap* bubbleBitmap;
+
 public:
     fish *myFish;
 
@@ -207,15 +210,24 @@ void HelloWorld::initBubbles() {
 void HelloWorld::updateBubbles() {
     for( int a = 0; a < 3; a = a + 1 ){
 
-    double y, z;
+    double x, y, z;
     cShapeSphere* bubble;
     bubble = new cShapeSphere(0.08);
     cVector3d direction = myFish->rot;
     cVector3d position = myFish->pos;
-    // x is set below
-    y = (double)(rand() % 1000)/100.0 - 5.0; // 5 m radius
-    z = (double)(rand() % 1000)/100.0 - 5.0;
-    bubble->setPos(cVector3d((position + (direction * 10)).x,y,z));
+    bubble->setPos(position + (direction * 10)); // first set bubble 10 m ahead
+
+    x = (direction.x * cos(90)) - (direction.y * sin(90));
+    y = (direction.y * cos(90)) - (direction.x * sin(90));
+    x = bubble->getPos().x + ((double)(rand() % 100)/100 * x);
+    y = bubble->getPos().y + ((double)(rand() % 100)/100 * y);
+    z = bubble->getPos().z + (double)(rand() % 1000)/100.0 - 5.0; //height is +- 5m from absolut pos
+
+    //x = (position + (direction * 10)).x;
+    //y = (double)(rand() % 1000)/100.0 - 5.0; // 5 m radius
+
+
+    bubble->setPos(cVector3d(x,y,z));
     myWorld->addChild(bubble);
     //std::cout << "New bubble at:" << bubble->getPos() << std::endl;
     }
@@ -243,6 +255,12 @@ void HelloWorld::initialize(cWorld* world, cCamera* camera)
 	m_velocityVector = new cShapeLine(cVector3d(0, 0, 0), cVector3d(0, 0, 0));
 	// Add line to the world
     myWorld->addChild(m_velocityVector);
+
+    //2D STUFF
+
+    //bubblesBitmap = new cBitmap();
+
+
 
 	// Here we define the material properties of the cursor when the
 	// user button of the device end-effector is engaged (ON) or released (OFF)
