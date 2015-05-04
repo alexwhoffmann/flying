@@ -230,7 +230,7 @@ private:
 public:
     fish *myFish;
 
-    virtual std::string getName() const { return "1: Hello World"; }
+    virtual std::string getName() const { return ""; }
 
 	virtual void initialize(cWorld* world, cCamera* camera);
 
@@ -392,14 +392,6 @@ void HelloWorld::createSeaFloor() {
         std::cout << "Couldn't load snd" << std::endl;
     }
 
-    cVector3d pos = cVector3d(-15.1,0,0);
-    cVector3d p0 = cVector3d(0.0, 0.0, 0.0);
-    cVector3d p1 = cVector3d(0.0, 0.1, 0.0);
-    cVector3d p2 = cVector3d(0.0, 0.0, 0.1);
-    cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(1,0,0));
-
-    terrainTriangleIndices.push_back(object);
-
     //create matrix to be used for terrain triangles
     int numTilesX = 100;
     int numTilesY = 100;
@@ -530,12 +522,11 @@ void HelloWorld::updateGraphics()
 
 
     std::stringstream ss;
-	ss << "You can add debug output like this: " << m_cursor->getPos().length() * 1000.0
-		<< " mm (Distance from center)";
+    ss << "Success!";
 	m_debugLabel->m_string = ss.str();
 
 	// Position the label
-	m_debugLabel->setPos(30, 150, 0);
+    m_debugLabel->setPos(10, 10, 0);
 }
 
 void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeStep, double totalTime)

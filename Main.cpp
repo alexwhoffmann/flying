@@ -78,8 +78,6 @@ cGenericHapticDevice* hapticDevice = 0;
 // Labels to show haptic device position, update rate and assignment text
 cLabel* positionLabel = 0;
 cLabel* rateLabel = 0;
-cLabel* assignmentLabel = 0;
-double assignmentLabelWidth;
 double rateEstimate = 0;
 
 // A clock measuring the total time
@@ -199,12 +197,16 @@ int main(int argc, char* argv[])
 	// Initialize the OpenGL GLUT window
 	glutInitWindowPosition(windowPosX, windowPosY);
 	glutInitWindowSize(WINDOW_SIZE_W, WINDOW_SIZE_H);
+
+
 	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
 	glutCreateWindow(argv[0]);
 	glutDisplayFunc(updateGraphics);
 	glutKeyboardFunc(keySelect);
 	glutReshapeFunc(resizeWindow);
-    glutSetWindowTitle("DH2660 Haptics Lab 1, KTH (we edited this)");
+    glutSetWindowTitle("Flying fish simulator");
+
+    glutFullScreen();
 
 	// Create a mouse menu (right button)
 	glutCreateMenu(menuSelect);
@@ -273,30 +275,17 @@ void reset(size_t assignmentId)
     //light->setPos(cVector3d(0.0, 0.0, 149.6e9));  // position the light source
 
 	// Create a label that shows the haptic loop update rate
-	rateLabel = new cLabel();
-	camera->m_front_2Dscene.addChild(rateLabel);
+    rateLabel = new cLabel();
+    //camera->m_front_2Dscene.addChild(rateLabel);
 
 	// Create a label that shows the current position of the device
 	positionLabel = new cLabel();
 	positionLabel->setPos(8, 8, 0);
 	camera->m_front_2Dscene.addChild(positionLabel);
 
-	// Create a label that shows the current assignment name
-	assignmentLabel = new cLabel();
-	camera->m_front_2Dscene.addChild(assignmentLabel);
-
 	// Initialize the current assignment
 	assignments[currentAssignment]->initialize(world, camera);
 	assignments[currentAssignment]->setInitialized(true);
-
-	// Update the assignment label
-	assignmentLabel->m_string = assignments[currentAssignment]->getName();
-	assignmentLabel->m_font->setPointSize(19.0f);
-
-	// Precalculate width to make it centered
-	assignmentLabelWidth = 0.0;
-	for (size_t i = 0; i < assignmentLabel->m_string.size(); ++i)
-		assignmentLabelWidth += assignmentLabel->m_font->getCharacterWidth(assignmentLabel->m_string[i]);
 
 	// Restart the clock measuring total time elapsed
 	clockTotal.start(true);
@@ -396,12 +385,10 @@ void updateGraphics(void)
     }
 
 	// Update the label with the haptic refresh rate
-	char buffer[128];
-	sprintf(buffer, "Haptic rate: %.0lf Hz", rateEstimate);
-	rateLabel->m_string = buffer;
-	rateLabel->setPos(displayW - 120, 8, 0);
-
-	assignmentLabel->setPos(0.5 * (displayW - assignmentLabelWidth), displayH - 20, 0);
+    //char buffer[128];
+    //sprintf(buffer, "Haptic rate: %.0lf Hz", rateEstimate);
+    //rateLabel->m_string = buffer;
+    //rateLabel->setPos(displayW - 120, 8, 0);
 
 	// Render world
 	camera->renderView(displayW, displayH);
