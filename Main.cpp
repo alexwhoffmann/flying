@@ -269,8 +269,8 @@ void reset(size_t assignmentId)
     //light->setPos(cVector3d(2.0, 0.5, 1.0));  // position the light source
 	light->setDir(cVector3d(-2.0, 0.5, 1.0));  // define the direction of the light beam
 
-    //light->setPos(cVector3d(0.0, 0.0, 500000.0));  // position the light source
-    light->setPos(cVector3d(0.0, 0.0, 149.6e9));  // position the light source
+    light->setPos(cVector3d(0.0, 0.0, 50.0));  // position the light source
+    //light->setPos(cVector3d(0.0, 0.0, 149.6e9));  // position the light source
 
 	// Create a label that shows the haptic loop update rate
 	rateLabel = new cLabel();
