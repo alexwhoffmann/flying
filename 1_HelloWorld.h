@@ -7,9 +7,7 @@
 #include <cstdlib>
 
 # define PI          3.141592653589793238462643383279502884L /* pi */
-// root resource path
 string resourceRoot;
-// convert to resource path
 #define RESOURCE_PATH(p)    (char*)((resourceRoot+string(p)).c_str())
 
 class fish {
@@ -42,8 +40,20 @@ public:
 
         //Update the graphical position of the fish fins
         cVector3d newFinPos;
-        double relYPos;
 
+        double relXPos;
+        //normalize value of X.
+        if (hapticPosition.x <= 0.035 && hapticPosition.x >= 0){
+            relXPos = hapticPosition.x / 0.035;
+        } else if (hapticPosition.x >= -0.04 && hapticPosition.x <= 0){
+            relXPos = hapticPosition.x / 0.04;
+        } else if(hapticPosition.x > 0.035){
+             relXPos = 1.0;
+        } else if(hapticPosition.x < -0.04){
+            relXPos = -1.0;
+        }
+
+        double relYPos;
         //normalize value of Y.
         if (hapticPosition.y <= 0.04 and hapticPosition.y >= -0.04){
             relYPos = hapticPosition.y / 0.04;
@@ -52,6 +62,19 @@ public:
         } else if(hapticPosition.y < -0.04){
             relYPos = -1.0;
         }
+
+        double relZPos;
+        //normalize value of Z.
+        if (hapticPosition.z <= 0.06 && hapticPosition.z >= 0){
+            relZPos = hapticPosition.z / 0.06;
+        } else if (hapticPosition.z >= -0.06 && hapticPosition.z <= 0){
+            relZPos = hapticPosition.z / 0.06;
+        } else if(hapticPosition.z > 0.06){
+             relZPos = 1.0;
+        } else if(hapticPosition.z < -0.06){
+            relZPos = -1.0;
+        }
+
 
         double newYRight, newZRight;
         double newYLeft, newZLeft;
@@ -66,21 +89,61 @@ public:
         newZLeft = -(sin(radians)*(finRadius+fishRadius));
         bodyFinL->setPos(body->getPos() + cVector3d(0, newYLeft, newZLeft));
 
-
         //change rot
         //cMatrix3d rotValue = cMatrix3d();
         //rotValue.set(, );
         //rot->setRot(rotValue);
 
         //add forces to fish
+        //forward/backward movement
+        double pushStrength = timeStep * 1500*relXPos;
+        cVector3d pushDirection = -pushStrength * ((1/vel.length())*vel);
+
         if (hapticPosition.x < 0.0) {
-            f.add(timeStep * hapticPosition.x * 1000.0, 0, 0);
+            f.add(pushDirection);
+            //f.add(0,0,0);
+        } else {
+            if (vel.length() > 0.1) {
+                vel *= 0.999;
+            } else {
+                //f.add(timeStep * 1500*relXPos,0,0);
+                f.add(pushStrength * ((1/vel.length())*vel));
+            }
         }
+
+        if (vel.length() > 0.03) {
+            //rotation around z axis
+            double fx = 0.8 * relYPos * (vel.y / vel.length());
+            double fy = 0.8 * relYPos * (-vel.x / vel.length());
+            f.add(fx, fy, 0);
+
+
+            //moving up/down
+            if (relZPos > 0.1 || relZPos < -0.1) {
+                f.add(0, 0, 0.5 * relZPos);
+            }
+
+            /*
+            double fx = relYPos * (vel.y / vel.length());
+            double fy = relYPos * (-vel.x / vel.length());
+            f.add(fx, fy, 0);
+            */
+
+            /*if ((rand() % 250) == 0) {
+                std::cout << "fx, fy: " << f.x << ", " << f.y << std::endl;
+            }*/
+        }
+
     }
 
     void updatePhysics(double timeStep) {
         vel += timeStep * f / m;
-        f = cVector3d(0.0, 0.0, 0.0);
+        vel *= 0.9995;
+        f.set(0,0,0);
+
+        /*if ((rand() % 250) == 0) {
+            std::cout << "vx, vy: " << vel.x << ", " << vel.y << std::endl;
+        }*/
 
         pos = body->getPos();
         pos += timeStep*vel;
@@ -92,7 +155,7 @@ public:
 
 fish::fish() {
     pos = cVector3d();
-    vel = cVector3d();
+    vel = cVector3d(-1.5,0,0);
     f = cVector3d();
 
     rot = cVector3d(-1, 0, 0);// assumed this is the direction he looks
@@ -159,8 +222,9 @@ private:
     // moved distance of the fish
     cVector3d distance;
 
-    // bitmap of the bubbles
+    // bitmap of the  bubbles
     cTexture2D* bubbleBitmap;
+    //cBitmap* bubbleBitmap;
 
 public:
     fish *myFish;
@@ -175,15 +239,11 @@ public:
 	virtual void updateHaptics(cGenericHapticDevice* hapticDevice, double timeStep, double totalTime);
 
     virtual void initBubbles();
-    virtual void updateBubbles();
-    virtual void loadBitmap(cShapeSphere* bubble);
+    virtual void addNewBubble();
+    virtual void applyTextureToBubble(cShapeSphere* bubble);
+    virtual double getRandom();
+    virtual void createSeaFloor();
 };
-
-/*
-*cVector3d getRandomCVector3d(double minX, double maxX, ) {
-    cVector3d =
-}
-*/
 
 /*
 cBitmap* getBitmap(String filename) {
@@ -201,9 +261,8 @@ void HelloWorld::initBubbles() {
         fileload = bubbleBitmap->loadFromFile("../haptics_lab1/bubble.bmp");
         #endif
     }
-
-
-    int numBubbles = 250;
+	
+    int numBubbles = 50;
     double x, y, z;
 
 
@@ -214,52 +273,53 @@ void HelloWorld::initBubbles() {
         cShapeSphere* bubble;
         bubble = new cShapeSphere(0.08);
 
-        x = -(double)(rand() % 1000)/100.0; // 10 m to the front
-        y = (double)(rand() % 1000)/100.0 - 5.0; // 5 m radius
-        z = (double)(rand() % 1000)/100.0 - 5.0;
+        //x = -(double)(rand() % 1000)/50.0;
+        x = (2*getRandom()-0.5) * 20;
+        y = (2*getRandom()-0.5) * 20;
+        z = (2*getRandom()-0.5) * 11;
+
+        //y = (double)(rand() % 1000)/25.0 - 25.0;
+        //z = (double)(rand() % 1000)/100.0 - 5.0;
 
         bubble->setPos(cVector3d(x,y,z));
-        // add texture
-        loadBitmap(bubble);
+        applyTextureToBubble(bubble);
         myWorld->addChild(bubble);
     }
 }
 
-void HelloWorld::updateBubbles() {
-    for( int a = 0; a < 3; a = a + 1 ){
+double HelloWorld::getRandom() { //returns a value between 0.0 and 1.0
+    return ((double)(rand() % 10000)/10000.0);
+}
 
+void HelloWorld::addNewBubble() {
     double x, y, z;
     cShapeSphere* bubble;
     bubble = new cShapeSphere(0.08);
-    cVector3d direction = myFish->rot;
-    cVector3d position = myFish->pos;
-    bubble->setPos(position + (direction * 10)); // first set bubble 10 m ahead
 
-    x = (direction.x * cos(90)) - (direction.y * sin(90));
-    y = (direction.y * cos(90)) - (direction.x * sin(90));
-    x = bubble->getPos().x + ((double)(rand() % 100)/100 * x * 10) - 5;
-    y = bubble->getPos().y + ((double)(rand() % 100)/100 * y * 10) - 5;
-    z = bubble->getPos().z + (double)(rand() % 1000)/100.0 - 5.0; //height is +- 5m from absolut pos
 
-    //x = (position + (direction * 10)).x;
-    //y = (double)(rand() % 1000)/100.0 - 5.0; // 5 m radius
+    cVector3d position = myFish->pos + 5*(1/myFish->vel.length())*myFish->vel;
+    double deviationDistance = 20.0;
+    double dx = deviationDistance * (2*getRandom()-0.5);
+    double dy = deviationDistance * (2*getRandom()-0.5);
+    double dz = deviationDistance * (2*getRandom()-0.5);
+    cVector3d deviation = cVector3d(dx,dy,dz); //move it +- deviationDistance in all three directions
+    position += deviation;
 
-    loadBitmap(bubble);
-    bubble->setPos(cVector3d(x,y,z));
+    //applyTextureToBubble(bubble);
+    bubble->setPos(position);
     myWorld->addChild(bubble);
-    //std::cout << "New bubble at:" << bubble->getPos() << std::endl;
-    }
+    std::cout << "New bubble at:" << bubble->getPos() << std::endl;
 }
 
 // load the bitmap and add it to the spheres
-void HelloWorld::loadBitmap(cShapeSphere* bubble)
+void HelloWorld::applyTextureToBubble(cShapeSphere* bubble)
 {
     // create a texture file
     bubble->m_texture = bubbleBitmap;
     bubble->m_texture->setSphericalMappingEnabled(true);
     bubble->setUseTexture(true);
     bubble->setTransparencyLevel(0.6, true, true);
-    std::cout << "Texture applied:" << std::endl;
+    //std::cout << "Texture applied:" << std::endl;
 }
 
 
@@ -328,23 +388,74 @@ void HelloWorld::initialize(cWorld* world, cCamera* camera)
     myWorld->addChild(myFish->bodyFinR);
     myWorld->addChild(myFish->bodyFinL);
 
+    createSeaFloor();
+}
+
+void HelloWorld::createSeaFloor() {
     //Trying to create the sea floor vertices
     //vector<unsigned int> terrainTriangleIndices
     //terrainTriangleIndices.reserve(100);
 
 
-    /*
-    cVector3d pos = cVector3d(-0.1,0,0);
+    cVector3d pos = cVector3d(-15.1,0,0);
     cVector3d p0 = cVector3d(0.0, 0.0, 0.0);
     cVector3d p1 = cVector3d(0.0, 0.1, 0.0);
     cVector3d p2 = cVector3d(0.0, 0.0, 0.1);
     cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(1,0,0));
     terrainTriangleIndices.push_back(object);
 
-    pos = cVector3d(-0.1,0,-0.1);
-    object = addTriangle(pos, p0, p1, p2, cColorf(0.8,0,0));
-    terrainTriangleIndices.push_back(object);
-    */
+    //create matrix to be used for terrain triangles
+    int numTilesX = 100;
+    int numTilesY = 100;
+    double sfm[numTilesX][numTilesY]; //sea floor matrix
+
+    for (int i = 0; i < numTilesX; i++) {
+        for (int t = 0; t < numTilesY; t++) {
+            for (int its = 0; its < 20; its++) {
+                if (its == 0) {
+                    sfm[i][t] = 0.0;
+                } else { //perturb it
+                    sfm[i][t] += 0.1*getRandom();
+                }
+            }
+        }
+    }
+
+
+    //adds a bunch of triangles
+    double triangleSize = 1.0;
+    double seaFloorZLevel = -10.0;
+
+    double seaFloorOffsetX = -(numTilesX * triangleSize) / 2;
+    double seaFloorOffsetY = -(numTilesY * triangleSize) / 2;
+
+    for (int i = 0; i < (numTilesX-1); i++) {
+        for (int t = 0; t < (numTilesY-1); t++) {
+            cVector3d pos = cVector3d(seaFloorOffsetX+i*triangleSize,
+                                      seaFloorOffsetY+t*triangleSize,
+                                      seaFloorZLevel);
+
+            cVector3d p0 = cVector3d(0.0, 0.0, sfm[i][t]);
+            cVector3d p1 = cVector3d(0.0, triangleSize, sfm[i][t+1]);
+            cVector3d p2 = cVector3d(-triangleSize, 0.0, sfm[i+1][t]);
+
+            cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(0.54,0.27,0.075));
+            terrainTriangleIndices.push_back(object);
+
+            //-ts,0    -ts,ts
+            //0,0      0,ts
+
+            //0,ts -> -ts,ts, -ts,0
+
+            //add opposite side
+            p0 = cVector3d(0.0, triangleSize, sfm[i+1][t+1] );
+            p1 = cVector3d(-triangleSize, triangleSize, sfm[i+1][t]);
+            p2 = cVector3d(-triangleSize, 0.0, sfm[i][t+1]);
+
+            object = addTriangle(pos, p0, p1, p2, cColorf(0.44,0.17,0.035));
+            terrainTriangleIndices.push_back(object);
+        }
+    }
 }
 
 cMesh* HelloWorld::addTriangle(cVector3d pos, cVector3d p0, cVector3d p1, cVector3d p2, cColorf color) {
@@ -373,16 +484,22 @@ cMesh* HelloWorld::addTriangle(cVector3d pos, cVector3d p0, cVector3d p1, cVecto
 
 void HelloWorld::updateGraphics()
 {
-    myCamera->set(myFish->body->getPos() + cVector3d(0.2, 0.0, 0.0),    // camera position (eye)
-                  myFish->body->getPos(),    // lookat position (target)
-        cVector3d(0.0, 0.0, 1.0));   // direction of the "up" vector
+    myCamera->set(myFish->body->getPos() // camera position (eye)
+                  - 0.25 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
+                  + cVector3d(0,0,0.02), //move it up a bit
+                  myFish->body->getPos() + 2.25 * (1/myFish->vel.length()) * myFish->vel ,    // lookat position (target)
+        cVector3d(0.0, 0.0, 1.0));   // direction of the "up" vector    
 
-    //myCamera->
+    // add new bubbles in the distance
+
+    if (getRandom() < 0.1) {
+        addNewBubble();
+    }
+
+
     std::stringstream ss;
-
 	ss << "You can add debug output like this: " << m_cursor->getPos().length() * 1000.0
 		<< " mm (Distance from center)";
-
 	m_debugLabel->m_string = ss.str();
 
 	// Position the label
@@ -412,34 +529,14 @@ void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeSt
 
 
 
-
     //Do stuff with the terrain
     for(int i = 0; i < terrainTriangleIndices.size(); ++i) {
-        cMatrix3d rotValue = cMatrix3d();
-        rotValue.set(cVector3d(0,1,0), 2*totalTime);
-        terrainTriangleIndices[i]->setRot(rotValue);
-    }
-    // add new bubbles in the distance
-  /* float timeSpan;
-   timeSpan = timeSpan + timeStep;
-   if(timeSpan > 1.0){
-        timeSpan = 0.0;
-        updateBubbles();
+        //cMatrix3d rotValue = cMatrix3d();
+        //rotValue.set(cVector3d(0,1,0), 2*totalTime);
+        //terrainTriangleIndices[i]->setRot(rotValue);
+        //terrainTriangleIndices[i]->setPos(terrainTriangleIndices[i]->getPos() + cVector3d(1e-3, 0, 0));
     }
 
-    */
-    distance += timeStep*myFish->vel;
-    if(distance.length() > 1.00){
-        distance = cVector3d(0,0,0);
-        updateBubbles();
-    }
-   /* vel += timeStep * f / m;
-    f = cVector3d(0.0, 0.0, 0.0);
-
-    pos = body->getPos();
-    pos += timeStep*vel;
-    body->setPos(pos);
-*/
     // Adjust the color of the cursor according to the status of
 	// the user switch (ON = TRUE / OFF = FALSE)
 	m_cursor->m_material = buttonStatus ? m_matCursorButtonON : m_matCursorButtonOFF;
