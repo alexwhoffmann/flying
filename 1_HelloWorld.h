@@ -10,6 +10,11 @@
 string resourceRoot;
 #define RESOURCE_PATH(p)    (char*)((resourceRoot+string(p)).c_str())
 
+#define seaFloorZLevel -14.0
+#define numTilesX 80
+#define numTilesY 80
+#define triangleSize 5.5
+
 class fish {
 private:
 public:
@@ -96,15 +101,16 @@ public:
 
         //add forces to fish
         //forward/backward movement
-        double pushStrength = timeStep * 1500*relXPos;
+        double pushStrength = timeStep * 2900*relXPos;
         cVector3d pushDirection = -pushStrength * ((1/vel.length())*vel);
+        //cVertex
 
         if (hapticPosition.x < 0.0) {
             f.add(pushDirection);
             //f.add(0,0,0);
         } else {
             if (vel.length() > 0.1) {
-                vel *= 0.999;
+                vel *= 0.9993;
             } else {
                 //f.add(timeStep * 1500*relXPos,0,0);
                 f.add(pushStrength * ((1/vel.length())*vel));
@@ -113,32 +119,67 @@ public:
 
         if (vel.length() > 0.03) {
             //rotation around z axis
-            double fx = 0.8 * relYPos * (vel.y / vel.length());
-            double fy = 0.8 * relYPos * (-vel.x / vel.length());
+            double fx = 1.8 * relYPos * pow(vel.y / vel.length(), 1.0);
+            double fy = 1.8 * relYPos * pow(-vel.x / vel.length(), 1.0);
             f.add(fx, fy, 0);
 
 
             //moving up/down
-            if (relZPos > 0.1 || relZPos < -0.1) {
-                f.add(0, 0, 0.5 * relZPos);
+            if (body->getPos().z < 0.0) { //in water
+                if (relZPos > 0.1 || relZPos < -0.1) {
+
+                    if (vel.length() < 1.5) {
+                        f.add(0, 0, 0.1 * relZPos); //weaker when slow
+                    } else {
+                        f.add(0, 0, 2.3 * relZPos);
+                    }
+
+                    if (vel.z < 0.5) {
+                        f.add(0, 0, 0.1 * vel.length() * relZPos);
+                    }
+                }
+            } else { //in air
+                if (relZPos > 0.1 || relZPos < -0.1) {
+                    f.add(0, 0, 0.7 * relZPos);
+                }
             }
-
-            /*
-            double fx = relYPos * (vel.y / vel.length());
-            double fy = relYPos * (-vel.x / vel.length());
-            f.add(fx, fy, 0);
-            */
-
-            /*if ((rand() % 250) == 0) {
-                std::cout << "fx, fy: " << f.x << ", " << f.y << std::endl;
-            }*/
         }
-
     }
 
-    void updatePhysics(double timeStep) {
+    cVector3d updatePhysics(double timeStep, double sfm[numTilesX][numTilesY]) {
+        cVector3d hapticForceVector;
+
+        //add gravity
+        if (this->body->getPos().z > 0.0) {
+            if (vel.z > 0) { //flying upwards, add gravity
+                cVector3d g = cVector3d(0.0, 0.0, -0.2*9.82);
+                f += m * g;
+            } else { //flying downwards, constant downvard velocity
+                vel += cVector3d(0.0, 0.0, -timeStep*1.5);
+            }
+        } else { //might be below sea floor
+
+            //seaFloorZLevel
+            //#define numTilesX 80
+            //#define numTilesY 80
+            //#define triangleSize = 5.5;
+
+            //int i = (int)((body->getPos().x / triangleSize) - ((double)numTilesX)/2);
+            //int t = (int)((body->getPos().y / triangleSize) - ((double)numTilesY)/2);
+
+            //double z = seaFloorZLevel + sfm[t][i];
+            double z = seaFloorZLevel + 3.5;
+
+            if (body->getPos().z < z) { //there was a collision with the seafloor
+                f += cVector3d(0.0, 0.0, 7.0);
+                hapticForceVector += cVector3d(0.0, 0.0, 9.0);
+            }
+        }
+
+        rot.z = vel.z;
+
         vel += timeStep * f / m;
-        vel *= 0.9995;
+        vel *= 0.9998;
         f.set(0,0,0);
 
         /*if ((rand() % 250) == 0) {
@@ -148,17 +189,21 @@ public:
         pos = body->getPos();
         pos += timeStep*vel;
         body->setPos(pos);
+
+        hapticForceVector += cVector3d(0.0, 0.0, -1*this->vel.z);
+
+        return hapticForceVector;
     }
 
 
 };
 
 fish::fish() {
-    pos = cVector3d();
+    pos = cVector3d(0.0, 0.0, -3.0);
     vel = cVector3d(-4.5,0,0);
     f = cVector3d();
 
-    rot = cVector3d(-1, -0.3, 0);// assumed this is the direction the fish looks
+    rot = cVector3d(-1, 0.0, 0);// assumed this is the direction the fish looks
     rotVel = cVector3d();
     rotF = cVector3d();
 
@@ -226,6 +271,9 @@ private:
     cTexture2D* bubbleBitmap;
 
     cTexture2D* seafloorBitmap;
+    cTexture2D* skyboxTopBitmap;
+
+    double sfm[numTilesX][numTilesY]; //sea floor matrix
 
 public:
     fish *myFish;
@@ -258,7 +306,7 @@ void HelloWorld::initBubbles() {
         #endif
     }
 	
-    int numBubbles = 50;
+    int numBubbles = 0;
     double x, y, z;
 
 
@@ -267,9 +315,9 @@ void HelloWorld::initBubbles() {
         bubble = new cShapeSphere(0.08);
 
         //x = -(double)(rand() % 1000)/50.0;
-        x = (2*getRandom()-0.5) * 20;
-        y = (2*getRandom()-0.5) * 20;
-        z = (2*getRandom()-0.5) * 11;
+        x = (2*getRandom()-1.0) * 95;
+        y = (2*getRandom()-1.0) * 95;
+        z = -getRandom() * 8.0;
 
         //y = (double)(rand() % 1000)/25.0 - 25.0;
         //z = (double)(rand() % 1000)/100.0 - 5.0;
@@ -342,8 +390,6 @@ void HelloWorld::initialize(cWorld* world, cCamera* camera)
 
     //bubblesBitmap = new cBitmap();
 
-
-
 	// Here we define the material properties of the cursor when the
 	// user button of the device end-effector is engaged (ON) or released (OFF)
 
@@ -393,17 +439,17 @@ void HelloWorld::createSeaFloor() {
     }
 
     //create matrix to be used for terrain triangles
-    int numTilesX = 100;
-    int numTilesY = 100;
-    double sfm[numTilesX][numTilesY]; //sea floor matrix
+    //int numTilesX = 80;
+    //int numTilesY = 80;
+    //double sfm[numTilesX][numTilesY]; //sea floor matrix
 
     for (int i = 0; i < numTilesX; i++) {
         for (int t = 0; t < numTilesY; t++) {
-            for (int its = 0; its < 20; its++) {
+            for (int its = 0; its < 10; its++) {
                 if (its == 0) {
                     sfm[i][t] = 0.0;
                 } else { //perturb it
-                    sfm[i][t] += 0.2*getRandom();
+                    sfm[i][t] += 0.6*getRandom();
                 }
             }
         }
@@ -412,20 +458,20 @@ void HelloWorld::createSeaFloor() {
     for (int its = 0; its < 25; its++) {
         int x = (rand() % (numTilesX-1))-1;
         int y = (rand() % (numTilesY-1))-1;
-        sfm[x][y] += 1.0 + 1.8*getRandom();
+        sfm[x][y] += 2.3 + 1.9*getRandom();
 
-        double smallBump = 0.4;
+        double smallBump = 1.5;
 
-        sfm[x+1][y] += smallBump + 0.6*getRandom();
-        sfm[x][y+1] += smallBump + 0.6*getRandom();
-        sfm[x-1][y] += smallBump + 0.6*getRandom();
-        sfm[x][y-1] += smallBump + 0.6*getRandom();
+        sfm[x+1][y] += smallBump + 0.7*getRandom();
+        sfm[x][y+1] += smallBump + 0.7*getRandom();
+        sfm[x-1][y] += smallBump + 0.7*getRandom();
+        sfm[x][y-1] += smallBump + 0.7*getRandom();
     }
 
 
     //adds a bunch of triangles
-    double triangleSize = 1.0;
-    double seaFloorZLevel = -5.0;
+    //double triangleSize = 5.5;
+    //double seaFloorZLevel = -15.0;
 
     double seaFloorOffsetX = -(numTilesX * triangleSize) / 2;
     double seaFloorOffsetY = -(numTilesY * triangleSize) / 2;
@@ -440,13 +486,13 @@ void HelloWorld::createSeaFloor() {
             cVector3d p1 = cVector3d(triangleSize, 0.0, sfm[t][i+1]);
             cVector3d p2 = cVector3d(0.0, triangleSize, sfm[t+1][i]);
 
-            cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(0.54,0.27,0.075));
-            /*
-            object->m_texture = seafloorBitmap;
+            cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(0.51,0.26,0.073));
+
+            /*object->m_texture = seafloorBitmap;
             object->m_texture->setSphericalMappingEnabled(true);
             object->m_texture->setWrapMode(GL_CLAMP, GL_CLAMP);
-            object->setUseTexture(true);
-            */
+            object->setUseTexture(true);*/
+
             terrainTriangleIndices.push_back(object);
 
             //add opposite side
@@ -465,21 +511,43 @@ void HelloWorld::createSeaFloor() {
 
 void HelloWorld::createWaterSurface() {
 
-    double waterSurfaceXSize = 180.0;
-    double waterSurfaceYSize = 180.0;
+    skyboxTopBitmap = new cTexture2D();
+    if (!skyboxTopBitmap->loadFromFile("../flying/skybox_midpart.bmp")) {
+        std::cout << "Couldn't load skybox_midpart.bmp" << std::endl;
+    }
 
-    cVector3d pos = cVector3d(-waterSurfaceXSize/2.0, -waterSurfaceYSize/2.0, 15.5);
+    double waterSurfaceXSize = 400.0;
+    double waterSurfaceYSize = 400.0;
+
+    cVector3d pos = cVector3d(-waterSurfaceXSize/2.0, -waterSurfaceYSize/2.0, 0.0);
     cVector3d p0 = cVector3d(0.0, 0.0, 0.0);
     cVector3d p1 = cVector3d(0.0, waterSurfaceYSize, 0.0);
     cVector3d p2 = cVector3d(waterSurfaceXSize, 0.0, 0.0);
-    cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(0.1, 0.2, 0.8));
-    //cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(1.0, 0.2, 0.3));
+    cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(0.1, 0.2, 0.8, 0.5));
+    //object->setTransparencyRenderMode(true, false);
+    //object->setTransparencyLevel(0.5,false,true);
 
-    pos = cVector3d(-waterSurfaceXSize/2.0, -waterSurfaceYSize/2.0, 15.5);
+    /*pos = cVector3d(-waterSurfaceXSize/2.0, -waterSurfaceYSize/2.0, 0.0);
+    p0 = cVector3d(0.0, 0.0, 0.0);
+    p1 = cVector3d(0.0, waterSurfaceYSize, 0.0);
+    p2 = cVector3d(waterSurfaceXSize, 0.0, 0.0);*/
+    object = addTriangle(pos, p2, p1, p0, cColorf(0.1, 0.2, 0.8, 0.5));
+    //object->setTransparencyRenderMode(true, false);
+    //object->setTransparencyLevel(0.5,false,true);
+
+    /*
+    object->m_texture = skyboxTopBitmap;
+    object->m_texture->setSphericalMappingEnabled(true);
+    object->m_texture->setWrapMode(GL_CLAMP, GL_CLAMP);
+    object->setUseTexture(true);*/
+
+    pos = cVector3d(-waterSurfaceXSize/2.0, -waterSurfaceYSize/2.0, 0.0);
     p0 = cVector3d(0.0, waterSurfaceYSize, 0.0);
     p1 = cVector3d(waterSurfaceXSize, waterSurfaceYSize, 0.0);
     p2 = cVector3d(waterSurfaceXSize, 0.0, 0.0);
     object = addTriangle(pos, p0, p1, p2, cColorf(0.1, 0.2, 0.85));
+
+    object = addTriangle(pos, p2, p1, p0, cColorf(0.1, 0.2, 0.85));
 }
 
 cMesh* HelloWorld::addTriangle(cVector3d pos, cVector3d p0, cVector3d p1, cVector3d p2, cColorf color) {
@@ -516,17 +584,15 @@ void HelloWorld::updateGraphics()
 
     // add new bubbles in the distance
 
-    if (getRandom() < 0.1) {
+    /*if (getRandom() < 0.1) {
         addNewBubble();
-    }
+    }*/
 
 
     std::stringstream ss;
-    ss << "Success!";
+    ss << "Fish pos z: " << myFish->body->getPos().z;
 	m_debugLabel->m_string = ss.str();
-
-	// Position the label
-    m_debugLabel->setPos(10, 10, 0);
+    m_debugLabel->setPos(10, 40, 0);
 }
 
 void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeStep, double totalTime)
@@ -565,11 +631,30 @@ void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeSt
 	m_cursor->m_material = buttonStatus ? m_matCursorButtonON : m_matCursorButtonOFF;
 
     myFish->updateFishFins(timeStep, hapticPosition);
-    myFish->updatePhysics(timeStep);
+    cVector3d hapticForceVector = myFish->updatePhysics(timeStep, sfm);
 
-	cVector3d force(0, 0, 0);
-    //Set a force to the haptic device
-	hapticDevice->setForce(force);
+    double spdMultiplier = 14 * myFish->vel.length();
+    double x, y;
+    double exponent = 0.7;
+    if (hapticPosition.x > 0.0)
+        x = pow(hapticPosition.x, exponent);
+    else
+        x = -pow(-hapticPosition.x, exponent);
+
+    if (hapticPosition.y > 0.0)
+        y = pow(hapticPosition.y, exponent);
+    else
+        y = -pow(-hapticPosition.y, exponent);
+
+    if (myFish->body->getPos().z > 0.0) { //weaker force feedback when above water
+        spdMultiplier *= 0.15;
+    }
+
+    hapticForceVector += cVector3d(-0.3*spdMultiplier*x,
+                                   -spdMultiplier*y,
+                                   0.0);
+
+    hapticDevice->setForce(hapticForceVector);
 }
 
 #endif
