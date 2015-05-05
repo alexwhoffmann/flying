@@ -262,7 +262,7 @@ void reset(size_t assignmentId)
 
 	// Set the near and far clipping planes of the camera
 	// anything in front/behind these clipping planes will not be rendered
-    camera->setClippingPlanes(0.01, 50.0);
+    camera->setClippingPlanes(0.01, 40.0);
 
 	// Create a light source and attach it to the camera
 	light = new cLight(world);
