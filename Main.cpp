@@ -377,7 +377,7 @@ void updateGraphics(void)
 	}
 
     if (assignments[currentAssignment]->isInitialized()) {
-		assignments[currentAssignment]->updateGraphics();
+        assignments[currentAssignment]->updateGraphics();
 
         //assignments[currentAssignment]->myFish->body->getPos();
 

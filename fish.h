@@ -1,7 +1,7 @@
 class fish {
 private:
 public:
-    cVector3d pos;
+    //cVector3d pos;
 
     cShapeSphere* bodyFinR;
     cShapeSphere* bodyFinL;
@@ -17,11 +17,14 @@ public:
     cVector3d rotVel;
     cVector3d rotF;
 
-    double m;
+    double m; //mass
 
+    //cShapeSphere* body;
 
-    cShapeSphere* body;
+    // create a virtual mesh
+    cMesh* body;
 
+    void loadModel(cWorld* world);
     fish();
 
     void updateFishFins(double timeStep, cVector3d hapticPosition) {
@@ -169,9 +172,10 @@ public:
             std::cout << "vx, vy: " << vel.x << ", " << vel.y << std::endl;
         }*/
 
-        pos = body->getPos();
-        pos += timeStep*vel;
-        body->setPos(pos);
+        //pos = body->getPos();
+        //pos += timeStep*vel;
+        //body->setPos(pos);
+        body->setPos(body->getPos() + timeStep*vel);
 
         hapticForceVector += cVector3d(0.0, 0.0, -1*this->vel.z);
 
@@ -182,7 +186,7 @@ public:
 };
 
 fish::fish() {
-    pos = cVector3d(0.0, 0.0, 3.0);
+    //pos = cVector3d(0.0, 0.0, 3.0);
     vel = cVector3d(-4.5,0,5.5);
     f = cVector3d();
 
@@ -196,11 +200,37 @@ fish::fish() {
     fishRadius = 0.01;
     maxAngle = 60;
 
-    body = new cShapeSphere(fishRadius);
+    //body = new cShapeSphere(fishRadius);
 
     bodyFinR = new cShapeSphere(finRadius);
     bodyFinL = new cShapeSphere(finRadius);
 
     bodyFinR->setPos(0,0.015,0);
     bodyFinL->setPos(0,-0.015,0);
+}
+
+void fish::loadModel(cWorld* world) {
+
+    body = new cMesh(world);
+    world->addChild(body);
+    //body->setPos(0.0, 0.0, 0.0);
+
+    if (!body->loadFromFile("../flying/fishmodel.3ds")) {
+        std::cout << "Problem loading model fishmodel.3ds" << std::endl;
+    } else {
+        //body->scaleObject(cVector3d(0.005, 0.005, 0.005));
+        body->scale(cVector3d(0.005, 0.005, 0.005));
+        //body->rotate(cVector3d(0.0, 0.0, 1.0), PI/2.0);
+        //body->extrude()
+    }
+
+
+    /*
+    if (!fileload)
+    {
+        printf("Error - 3D Model failed to load correctly.\n");
+        close();
+        return (-1);
+    }
+    */
 }

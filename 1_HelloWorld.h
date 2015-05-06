@@ -125,7 +125,7 @@ void HelloWorld::addNewBubble() {
     bubble = new cShapeSphere(0.08);
 
 
-    cVector3d position = myFish->pos + 5*(1/myFish->vel.length())*myFish->vel;
+    cVector3d position = myFish->body->getPos() + 5*(1/myFish->vel.length())*myFish->vel;
     double deviationDistance = 20.0;
     double dx = deviationDistance * (2*getRandom()-0.5);
     double dy = deviationDistance * (2*getRandom()-0.5);
@@ -200,6 +200,10 @@ void HelloWorld::initialize(cWorld* world, cCamera* camera)
 	camera->m_front_2Dscene.addChild(m_debugLabel);
 
     myFish = new fish();
+    myFish->loadModel(myWorld);
+
+    //myFish->body->scale(cVector3d(0.01, 0.01, 0.01), false);
+    //myFish->body->scaleObject(cVector3d(0.01, 0.01, 0.01));
 
     //sphere = new cShapeSphere(0.01);
     //cShapeLine *myLine = new cShapeLine(cVector3d(0,0.02,1),cVector3d(0,0.02,-1));
@@ -386,23 +390,23 @@ void HelloWorld::createShadow() {
     int N = 36;
     double a1, a2;
     for (int i = 0; i < N; i++) {
-        r = 0.011;
+        r = 0.014;
         a1 = 2*PI * ((double)i)/N;
         a2 = 2*PI * ((double)(i+1))/N;
         cVector3d pos = cVector3d(0.0, 0.0, 0.00);
         cVector3d p0 = cVector3d(0.0, 0.0, 0.0);
         cVector3d p1 = cVector3d(r*cos(a1), r*sin(a1), 0.0);
         cVector3d p2 = cVector3d(r*cos(a2), r*sin(a2), 0.0);
-        cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(1.0, 0.3, 0.0), false);
+        cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(0.0, 0.0, 0.2), false);
         mainShadowTriangles.push_back(object);
 
-        r2 = 0.006;
+        r2 = 0.008;
         for (int dir = -1; dir <= 1; dir += 2) {
             pos = cVector3d(0.0, 1.3*r*dir, 0.00);
             p0 = cVector3d(0.0, 0.0, 0.0);
             p1 = cVector3d(r2*cos(a1), r2*sin(a1), 0.0);
             p2 = cVector3d(r2*cos(a2), r2*sin(a2), 0.0);
-            object = addTriangle(pos, p0, p1, p2, cColorf(1.0, 0.3, 0.0), false);
+            object = addTriangle(pos, p0, p1, p2, cColorf(0.0, 0.0, 0.2), false);
 
             if (dir == -1) {
                 leftShadowTriangles.push_back(object);
@@ -442,12 +446,19 @@ cMesh* HelloWorld::addTriangle(cVector3d pos, cVector3d p0, cVector3d p1, cVecto
 
 void HelloWorld::updateGraphics()
 {
+    //set camera
     myCamera->set(myFish->body->getPos() // camera position (eye)
-                  - 0.25 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
+                  //- 0.25 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
+                  - 0.35 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
+                  //- 15 * 0.25 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
                   + cVector3d(0,0,0.02), //move it up a bit
                   myFish->body->getPos() + 2.25 * (1/myFish->vel.length()) * myFish->vel ,    // lookat position (target)
         cVector3d(0.0, 0.0, 1.0));   // direction of the "up" vector    
 
+    //set body rotation
+    cMatrix3d rotValue = cMatrix3d();
+    rotValue.set(cVector3d(0.0, 0.0, 1.0), PI/2 + 0.0);
+    myFish->body->setRot(rotValue);
 
     //update shadow position
     double shadowX, shadowY, shadowZ;
@@ -456,11 +467,13 @@ void HelloWorld::updateGraphics()
         shadowY = myFish->body->getPos().y;
 
         if (myFish->body->getPos().z < 0.0) //under the water
-            shadowZ = 0.0;
+            shadowZ = -1000.0;
         else
-            shadowZ = 0.01;
+            shadowZ = 0.001;
 
         mainShadowTriangles[i]->setPos(shadowX, shadowY, shadowZ);
+        //mainShadowTriangles[i]->scale(cVector3d(0.01, 0.01, 0.01));
+
 
         //leftShadowTriangles[i]->setPos(x,y,z);
         //rightShadowTriangles[i]->setPos(x,y,z);
