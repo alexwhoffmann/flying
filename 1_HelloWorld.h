@@ -16,213 +16,10 @@ string resourceRoot;
 #define triangleSize 5.5
 
 #define WATER_SURFACE_TRANSPARENCY 0.6
+#define WATER_SURFACE_TRANSPARENCY_FROM_BELOW 0.3
 
-class fish {
-private:
-public:
-    cVector3d pos;
+#include "fish.h"
 
-    cShapeSphere* bodyFinR;
-    cShapeSphere* bodyFinL;
-
-    double finRadius;
-    double fishRadius;
-    double maxAngle;
-
-    cVector3d vel;
-    cVector3d f;
-
-    cVector3d rot; //yaw, pitch, roll
-    cVector3d rotVel;
-    cVector3d rotF;
-
-    double m;
-
-
-    cShapeSphere* body;
-
-    fish();
-
-    void updateFishFins(double timeStep, cVector3d hapticPosition) {
-
-        //Update the graphical position of the fish fins
-        cVector3d newFinPos;
-
-        double relXPos;
-        //normalize value of X.
-        if (hapticPosition.x <= 0.035 && hapticPosition.x >= 0){
-            relXPos = hapticPosition.x / 0.035;
-        } else if (hapticPosition.x >= -0.04 && hapticPosition.x <= 0){
-            relXPos = hapticPosition.x / 0.04;
-        } else if(hapticPosition.x > 0.035){
-             relXPos = 1.0;
-        } else if(hapticPosition.x < -0.04){
-            relXPos = -1.0;
-        }
-
-        double relYPos;
-        //normalize value of Y.
-        if (hapticPosition.y <= 0.04 and hapticPosition.y >= -0.04){
-            relYPos = hapticPosition.y / 0.04;
-        } else if(hapticPosition.y > 0.04){
-             relYPos = 1.0;
-        } else if(hapticPosition.y < -0.04){
-            relYPos = -1.0;
-        }
-
-        double relZPos;
-        //normalize value of Z.
-        if (hapticPosition.z <= 0.06 && hapticPosition.z >= 0){
-            relZPos = hapticPosition.z / 0.06;
-        } else if (hapticPosition.z >= -0.06 && hapticPosition.z <= 0){
-            relZPos = hapticPosition.z / 0.06;
-        } else if(hapticPosition.z > 0.06){
-             relZPos = 1.0;
-        } else if(hapticPosition.z < -0.06){
-            relZPos = -1.0;
-        }
-
-
-        double newYRight, newZRight;
-        double newYLeft, newZLeft;
-        double radians = relYPos * -maxAngle * PI / 180.0 ;
-
-        //std::cout << "radians = " << radians << std::endl;
-        newYRight = (cos(radians) * (finRadius + fishRadius));
-        newZRight = (sin(radians) * (finRadius + fishRadius));
-        bodyFinR->setPos(body->getPos() + cVector3d(0, newYRight, newZRight));
-
-        newYLeft = -(cos(radians)*(finRadius+fishRadius));
-        newZLeft = -(sin(radians)*(finRadius+fishRadius));
-        bodyFinL->setPos(body->getPos() + cVector3d(0, newYLeft, newZLeft));
-
-        //change rot
-        //cMatrix3d rotValue = cMatrix3d();
-        //rotValue.set(, );
-        //rot->setRot(rotValue);
-
-        //add forces to fish
-        //forward/backward movement
-        double pushStrength = timeStep * 2900*relXPos;
-        cVector3d pushDirection = -pushStrength * ((1/vel.length())*vel);
-        //cVertex
-
-        if (hapticPosition.x < 0.0) {
-            f.add(pushDirection);
-            //f.add(0,0,0);
-        } else {
-            if (vel.length() > 0.1) {
-                vel *= 0.9993;
-            } else {
-                //f.add(timeStep * 1500*relXPos,0,0);
-                f.add(pushStrength * ((1/vel.length())*vel));
-            }
-        }
-
-        if (vel.length() > 0.03) {
-            //rotation around z axis
-            double fx = 1.8 * relYPos * pow(vel.y / vel.length(), 1.0);
-            double fy = 1.8 * relYPos * pow(-vel.x / vel.length(), 1.0);
-            f.add(fx, fy, 0);
-
-
-            //moving up/down
-            if (body->getPos().z < 0.0) { //in water
-                if (relZPos > 0.1 || relZPos < -0.1) {
-
-                    if (vel.length() < 1.5) {
-                        f.add(0, 0, 0.1 * relZPos); //weaker when slow
-                    } else {
-                        f.add(0, 0, 2.3 * relZPos);
-                    }
-
-                    if (vel.z < 0.5) {
-                        f.add(0, 0, 0.1 * vel.length() * relZPos);
-                    }
-                }
-            } else { //in air
-                if (relZPos > 0.1 || relZPos < -0.1) {
-                    f.add(0, 0, 0.7 * relZPos);
-                }
-            }
-        }
-    }
-
-    cVector3d updatePhysics(double timeStep, double sfm[numTilesX][numTilesY]) {
-        cVector3d hapticForceVector;
-
-        //add gravity
-        if (this->body->getPos().z > 0.0) {
-            if (vel.z > 0) { //flying upwards, add gravity
-                cVector3d g = cVector3d(0.0, 0.0, -0.2*9.82);
-                f += m * g;
-            } else { //flying downwards, constant downvard velocity
-                vel += cVector3d(0.0, 0.0, -timeStep*1.5);
-            }
-        } else { //might be below sea floor
-
-            //seaFloorZLevel
-            //#define numTilesX 80
-            //#define numTilesY 80
-            //#define triangleSize = 5.5;
-
-            //int i = (int)((body->getPos().x / triangleSize) - ((double)numTilesX)/2);
-            //int t = (int)((body->getPos().y / triangleSize) - ((double)numTilesY)/2);
-
-            //double z = seaFloorZLevel + sfm[t][i];
-            double z = seaFloorZLevel + 3.5;
-
-            if (body->getPos().z < z) { //there was a collision with the seafloor
-                f += cVector3d(0.0, 0.0, 7.0);
-                hapticForceVector += cVector3d(0.0, 0.0, 9.0);
-            }
-        }
-
-        rot.z = vel.z;
-
-        vel += timeStep * f / m;
-        vel *= 0.9998;
-        f.set(0,0,0);
-
-        /*if ((rand() % 250) == 0) {
-            std::cout << "vx, vy: " << vel.x << ", " << vel.y << std::endl;
-        }*/
-
-        pos = body->getPos();
-        pos += timeStep*vel;
-        body->setPos(pos);
-
-        hapticForceVector += cVector3d(0.0, 0.0, -1*this->vel.z);
-
-        return hapticForceVector;
-    }
-
-
-};
-
-fish::fish() {
-    pos = cVector3d(0.0, 0.0, 3.0);
-    vel = cVector3d(-4.5,0,-1.5);
-    f = cVector3d();
-
-    rot = cVector3d(-1, 0.0, 0);// assumed this is the direction the fish looks
-    rotVel = cVector3d();
-    rotF = cVector3d();
-
-    m = 1.0; //1.0 kg
-
-    finRadius = 0.005;
-    fishRadius = 0.01;
-    maxAngle = 60;
-
-    body = new cShapeSphere(fishRadius);
-
-    bodyFinR = new cShapeSphere(finRadius);
-    bodyFinL = new cShapeSphere(finRadius);
-
-    bodyFinR->setPos(0,0.015,0);
-    bodyFinL->setPos(0,-0.015,0);
-}
 
 class HelloWorld : public Assignment
 {
@@ -246,6 +43,9 @@ private:
 
     //TERRAIN STUFF
     vector<cMesh*> terrainTriangleIndices;
+    vector<cMesh*> mainShadowTriangles;
+    vector<cMesh*> leftShadowTriangles;
+    vector<cMesh*> rightShadowTriangles;
 
     //FISH STUFF
     cShapeSphere *sphere;
@@ -496,23 +296,67 @@ void HelloWorld::createSeaFloor() {
         }
     }
 }
+/*
+
+*/
 
 void HelloWorld::createWaterSurface() {
 
     skyboxTopBitmap = new cTexture2D();
-    if (!skyboxTopBitmap->loadFromFile("../flying/skybox_midpart.bmp")) {
-        std::cout << "Couldn't load skybox_midpart.bmp" << std::endl;
+    if (!skyboxTopBitmap->loadFromFile("../flying/skybox_top.bmp")) {
+        std::cout << "Couldn't load skybox_top.bmp" << std::endl;
     }
 
     double waterSurfaceXSize = 400.0;
     double waterSurfaceYSize = 400.0;
 
+    double skySurfaceXSize = 800.0;
+    double skySurfaceYSize = 800.0;
+
+    cVector3d pos, p0, p1, p2;
+    cMesh* object;
+
+    /////////////
+    // Skybox
+    //
+    double SKYBOX_HEIGHT = 22.0;
+    pos = cVector3d(-skySurfaceXSize/2.0, -skySurfaceYSize/2.0, SKYBOX_HEIGHT);
+
+    //FIRST TRIANGLE
+    p0 = cVector3d(0.0, 0.0, 0.0);
+    p1 = cVector3d(0.0, skySurfaceYSize, 0.0);
+    p2 = cVector3d(skySurfaceXSize, 0.0, 0.0);
+    object = addTriangle(pos, p0, p1, p2, cColorf(1.0, 1.0, 1.0), false);
+    object->m_texture = skyboxTopBitmap;
+    object->m_texture->setSphericalMappingEnabled(true);
+    //object->m_texture->setWrapMode(GL_CLAMP, GL_CLAMP);
+    object->m_texture->setWrapMode(GL_REPEAT, GL_REPEAT);
+    //object->setUseVertexColors(false);
+    object->setUseTexture(true);
+
+    //SECOND TRIANGLE
+    p0 = cVector3d(0.0, skySurfaceYSize, 0.0);
+    p1 = cVector3d(skySurfaceXSize, skySurfaceYSize, 0.0);
+    p2 = cVector3d(skySurfaceXSize, 0.0, 0.0);
+    object = addTriangle(pos, p0, p1, p2, cColorf(1.0, 1.0, 1.0), false);
+    object->m_texture = skyboxTopBitmap;
+    object->m_texture->setSphericalMappingEnabled(true);
+    //object->m_texture->setWrapMode(GL_CLAMP, GL_CLAMP);
+    object->m_texture->setWrapMode(GL_REPEAT, GL_REPEAT);
+    //object->setUseVertexColors(false);
+    object->setUseTexture(true);
+
+
+    ///////////////
+    // Water Surface
+    //
+
     //as seen from below
-    cVector3d pos = cVector3d(-waterSurfaceXSize/2.0, -waterSurfaceYSize/2.0, 0.0);
-    cVector3d p0 = cVector3d(0.0, 0.0, 0.0);
-    cVector3d p1 = cVector3d(0.0, waterSurfaceYSize, 0.0);
-    cVector3d p2 = cVector3d(waterSurfaceXSize, 0.0, 0.0);
-    cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(0.1, 0.2, 0.8), false);
+    pos = cVector3d(-waterSurfaceXSize/2.0, -waterSurfaceYSize/2.0, 0.0);
+    p0 = cVector3d(0.0, 0.0, 0.0);
+    p1 = cVector3d(0.0, waterSurfaceYSize, 0.0);
+    p2 = cVector3d(waterSurfaceXSize, 0.0, 0.0);
+    object = addTriangle(pos, p0, p1, p2, cColorf(0.1, 0.2, 0.8, WATER_SURFACE_TRANSPARENCY_FROM_BELOW), true);
 
     //as seen from above
     object = addTriangle(pos, p2, p1, p0, cColorf(0.1, 0.2, 0.8, WATER_SURFACE_TRANSPARENCY), true);
@@ -530,21 +374,13 @@ void HelloWorld::createWaterSurface() {
     p0 = cVector3d(0.0, waterSurfaceYSize, 0.0);
     p1 = cVector3d(waterSurfaceXSize, waterSurfaceYSize, 0.0);
     p2 = cVector3d(waterSurfaceXSize, 0.0, 0.0);
-    object = addTriangle(pos, p0, p1, p2, cColorf(0.1, 0.2, 0.85), false);
+    object = addTriangle(pos, p0, p1, p2, cColorf(0.1, 0.2, 0.85, WATER_SURFACE_TRANSPARENCY_FROM_BELOW), true);
 
     //as seen from above
     object = addTriangle(pos, p2, p1, p0, cColorf(0.1, 0.2, 0.8, WATER_SURFACE_TRANSPARENCY), true);
 }
 
 void HelloWorld::createShadow() {
-    /*
-    cVector3d pos = cVector3d(0.0, 0.0, 0.0);
-    cVector3d p0 = cVector3d(0.0, 0.0, 0.0);
-    cVector3d p1 = cVector3d(0.0, r, 0.0);
-    cVector3d p2 = cVector3d(-r, 0.0, 0.0);
-    cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(1.0, 0.3, 0.0), false);
-    */
-
     //draw a circle
     double r, r2;
     int N = 36;
@@ -558,6 +394,7 @@ void HelloWorld::createShadow() {
         cVector3d p1 = cVector3d(r*cos(a1), r*sin(a1), 0.0);
         cVector3d p2 = cVector3d(r*cos(a2), r*sin(a2), 0.0);
         cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(1.0, 0.3, 0.0), false);
+        mainShadowTriangles.push_back(object);
 
         r2 = 0.006;
         for (int dir = -1; dir <= 1; dir += 2) {
@@ -566,6 +403,12 @@ void HelloWorld::createShadow() {
             p1 = cVector3d(r2*cos(a1), r2*sin(a1), 0.0);
             p2 = cVector3d(r2*cos(a2), r2*sin(a2), 0.0);
             object = addTriangle(pos, p0, p1, p2, cColorf(1.0, 0.3, 0.0), false);
+
+            if (dir == -1) {
+                leftShadowTriangles.push_back(object);
+            } else {
+                rightShadowTriangles.push_back(object);
+            }
         }
     }
 }
@@ -604,6 +447,27 @@ void HelloWorld::updateGraphics()
                   + cVector3d(0,0,0.02), //move it up a bit
                   myFish->body->getPos() + 2.25 * (1/myFish->vel.length()) * myFish->vel ,    // lookat position (target)
         cVector3d(0.0, 0.0, 1.0));   // direction of the "up" vector    
+
+
+    //update shadow position
+    double shadowX, shadowY, shadowZ;
+    for (int i = 0; i < mainShadowTriangles.size(); i++) {
+        shadowX = myFish->body->getPos().x;
+        shadowY = myFish->body->getPos().y;
+
+        if (myFish->body->getPos().z < 0.0) //under the water
+            shadowZ = 0.0;
+        else
+            shadowZ = 0.01;
+
+        mainShadowTriangles[i]->setPos(shadowX, shadowY, shadowZ);
+
+        //leftShadowTriangles[i]->setPos(x,y,z);
+        //rightShadowTriangles[i]->setPos(x,y,z);
+        //leftShadowTriangles[i]->setRot(0.0);
+        //rightShadowTriangles[i]->setRot(0.0);
+
+    }
 
     // add new bubbles in the distance
 
