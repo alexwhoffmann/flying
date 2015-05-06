@@ -1,3 +1,4 @@
+*.user
 CMakeLists.txt
 CMakeLists.txt.user
 Day_Skybox.png
