@@ -15,6 +15,8 @@ string resourceRoot;
 #define numTilesY 80
 #define triangleSize 5.5
 
+#define WATER_SURFACE_TRANSPARENCY 0.6
+
 class fish {
 private:
 public:
@@ -199,8 +201,8 @@ public:
 };
 
 fish::fish() {
-    pos = cVector3d(0.0, 0.0, -3.0);
-    vel = cVector3d(-4.5,0,0);
+    pos = cVector3d(0.0, 0.0, 3.0);
+    vel = cVector3d(-4.5,0,-1.5);
     f = cVector3d();
 
     rot = cVector3d(-1, 0.0, 0);// assumed this is the direction the fish looks
@@ -221,22 +223,6 @@ fish::fish() {
     bodyFinR->setPos(0,0.015,0);
     bodyFinL->setPos(0,-0.015,0);
 }
-
-/*
-M = makeZeroMatrix(100,100)
-for each value in M:
-        randomly deviate the value a bit
-
-for x, y in M:
-    //firstPoint = x,y
-    //secondPoint = x,y+1
-    //thirdPoint = x+1,y+1
-    triangle = makeTriangle(x,y,   x,y+1,  x+1,y+1)
-  world->add(triangle)
-
-*/
-
-
 
 class HelloWorld : public Assignment
 {
@@ -282,7 +268,7 @@ public:
 
 	virtual void initialize(cWorld* world, cCamera* camera);
 
-    virtual cMesh* addTriangle(cVector3d pos, cVector3d p0, cVector3d p1, cVector3d p2, cColorf color);
+    virtual cMesh* addTriangle(cVector3d pos, cVector3d p0, cVector3d p1, cVector3d p2, cColorf color, bool transparent);
 
 	virtual void updateGraphics();
 	virtual void updateHaptics(cGenericHapticDevice* hapticDevice, double timeStep, double totalTime);
@@ -293,6 +279,7 @@ public:
     virtual double getRandom();
     virtual void createSeaFloor();
     virtual void createWaterSurface();
+    virtual void createShadow();
 };
 
 void HelloWorld::initBubbles() {
@@ -429,6 +416,7 @@ void HelloWorld::initialize(cWorld* world, cCamera* camera)
 
     createSeaFloor();
     createWaterSurface();
+    createShadow();
 }
 
 void HelloWorld::createSeaFloor() {
@@ -486,7 +474,7 @@ void HelloWorld::createSeaFloor() {
             cVector3d p1 = cVector3d(triangleSize, 0.0, sfm[t][i+1]);
             cVector3d p2 = cVector3d(0.0, triangleSize, sfm[t+1][i]);
 
-            cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(0.51,0.26,0.073));
+            cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(0.51,0.26,0.073), false);
 
             /*object->m_texture = seafloorBitmap;
             object->m_texture->setSphericalMappingEnabled(true);
@@ -500,7 +488,7 @@ void HelloWorld::createSeaFloor() {
             p1 = cVector3d(triangleSize, triangleSize, sfm[t+1][i+1]);
             p2 = cVector3d(0.0, triangleSize, sfm[t+1][i]);
 
-            object = addTriangle(pos, p0, p1, p2, cColorf(0.44,0.17,0.035));
+            object = addTriangle(pos, p0, p1, p2, cColorf(0.44,0.17,0.035), false);
             /*object->m_texture = seafloorBitmap;
             object->m_texture->setSphericalMappingEnabled(true);
             object->setUseTexture(true);*/
@@ -519,21 +507,17 @@ void HelloWorld::createWaterSurface() {
     double waterSurfaceXSize = 400.0;
     double waterSurfaceYSize = 400.0;
 
+    //as seen from below
     cVector3d pos = cVector3d(-waterSurfaceXSize/2.0, -waterSurfaceYSize/2.0, 0.0);
     cVector3d p0 = cVector3d(0.0, 0.0, 0.0);
     cVector3d p1 = cVector3d(0.0, waterSurfaceYSize, 0.0);
     cVector3d p2 = cVector3d(waterSurfaceXSize, 0.0, 0.0);
-    cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(0.1, 0.2, 0.8, 0.5));
-    //object->setTransparencyRenderMode(true, false);
-    //object->setTransparencyLevel(0.5,false,true);
+    cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(0.1, 0.2, 0.8), false);
 
-    /*pos = cVector3d(-waterSurfaceXSize/2.0, -waterSurfaceYSize/2.0, 0.0);
-    p0 = cVector3d(0.0, 0.0, 0.0);
-    p1 = cVector3d(0.0, waterSurfaceYSize, 0.0);
-    p2 = cVector3d(waterSurfaceXSize, 0.0, 0.0);*/
-    object = addTriangle(pos, p2, p1, p0, cColorf(0.1, 0.2, 0.8, 0.5));
+    //as seen from above
+    object = addTriangle(pos, p2, p1, p0, cColorf(0.1, 0.2, 0.8, WATER_SURFACE_TRANSPARENCY), true);
     //object->setTransparencyRenderMode(true, false);
-    //object->setTransparencyLevel(0.5,false,true);
+    //object->setTransparencyLevel(0.1, false, true);
 
     /*
     object->m_texture = skyboxTopBitmap;
@@ -541,16 +525,52 @@ void HelloWorld::createWaterSurface() {
     object->m_texture->setWrapMode(GL_CLAMP, GL_CLAMP);
     object->setUseTexture(true);*/
 
+    //as seen from below
     pos = cVector3d(-waterSurfaceXSize/2.0, -waterSurfaceYSize/2.0, 0.0);
     p0 = cVector3d(0.0, waterSurfaceYSize, 0.0);
     p1 = cVector3d(waterSurfaceXSize, waterSurfaceYSize, 0.0);
     p2 = cVector3d(waterSurfaceXSize, 0.0, 0.0);
-    object = addTriangle(pos, p0, p1, p2, cColorf(0.1, 0.2, 0.85));
+    object = addTriangle(pos, p0, p1, p2, cColorf(0.1, 0.2, 0.85), false);
 
-    object = addTriangle(pos, p2, p1, p0, cColorf(0.1, 0.2, 0.85));
+    //as seen from above
+    object = addTriangle(pos, p2, p1, p0, cColorf(0.1, 0.2, 0.8, WATER_SURFACE_TRANSPARENCY), true);
 }
 
-cMesh* HelloWorld::addTriangle(cVector3d pos, cVector3d p0, cVector3d p1, cVector3d p2, cColorf color) {
+void HelloWorld::createShadow() {
+    /*
+    cVector3d pos = cVector3d(0.0, 0.0, 0.0);
+    cVector3d p0 = cVector3d(0.0, 0.0, 0.0);
+    cVector3d p1 = cVector3d(0.0, r, 0.0);
+    cVector3d p2 = cVector3d(-r, 0.0, 0.0);
+    cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(1.0, 0.3, 0.0), false);
+    */
+
+    //draw a circle
+    double r, r2;
+    int N = 36;
+    double a1, a2;
+    for (int i = 0; i < N; i++) {
+        r = 0.011;
+        a1 = 2*PI * ((double)i)/N;
+        a2 = 2*PI * ((double)(i+1))/N;
+        cVector3d pos = cVector3d(0.0, 0.0, 0.00);
+        cVector3d p0 = cVector3d(0.0, 0.0, 0.0);
+        cVector3d p1 = cVector3d(r*cos(a1), r*sin(a1), 0.0);
+        cVector3d p2 = cVector3d(r*cos(a2), r*sin(a2), 0.0);
+        cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(1.0, 0.3, 0.0), false);
+
+        r2 = 0.006;
+        for (int dir = -1; dir <= 1; dir += 2) {
+            pos = cVector3d(0.0, 1.3*r*dir, 0.00);
+            p0 = cVector3d(0.0, 0.0, 0.0);
+            p1 = cVector3d(r2*cos(a1), r2*sin(a1), 0.0);
+            p2 = cVector3d(r2*cos(a2), r2*sin(a2), 0.0);
+            object = addTriangle(pos, p0, p1, p2, cColorf(1.0, 0.3, 0.0), false);
+        }
+    }
+}
+
+cMesh* HelloWorld::addTriangle(cVector3d pos, cVector3d p0, cVector3d p1, cVector3d p2, cColorf color, bool transparent) {
     cMesh* object = new cMesh(myWorld);
 
     myWorld->addChild(object);
@@ -570,6 +590,9 @@ cMesh* HelloWorld::addTriangle(cVector3d pos, cVector3d p0, cVector3d p1, cVecto
     // we indicate that we ware rendering the triangle by using the specific
     // colors for each of them (see abov)
     object->setUseVertexColors(true);
+    if (transparent) {
+        object->setUseTransparency(true, false);
+    }
 
     return object;
 }
