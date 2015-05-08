@@ -124,7 +124,6 @@ void HelloWorld::addNewBubble() {
     cShapeSphere* bubble;
     bubble = new cShapeSphere(0.08);
 
-
     cVector3d position = myFish->body->getPos() + 5*(1/myFish->vel.length())*myFish->vel;
     double deviationDistance = 20.0;
     double dx = deviationDistance * (2*getRandom()-0.5);
