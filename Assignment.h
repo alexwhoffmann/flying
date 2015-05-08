@@ -15,6 +15,7 @@ public:
 
     virtual void initialize(cWorld* world, cCamera* camera) = 0;
     virtual void updateGraphics() = 0;
+    virtual void postUpdateGraphics() = 0;
     virtual void updateHaptics(cGenericHapticDevice* hapticDevice, double timeStep, double totalTime) = 0;
 
     volatile inline bool isInitialized() const { return m_isInitialized; }

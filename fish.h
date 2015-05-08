@@ -215,11 +215,12 @@ void fish::loadModel(cWorld* world) {
     world->addChild(body);
     //body->setPos(0.0, 0.0, 0.0);
 
-    if (!body->loadFromFile("../flying/fishmodel.3ds")) {
+    //if (!body->loadFromFile("../flying/fishmodel_centered.3ds")) {
+    if (!body->loadFromFile("../flying/fishagain.3ds")) {
         std::cout << "Problem loading model fishmodel.3ds" << std::endl;
     } else {
-        //body->scaleObject(cVector3d(0.005, 0.005, 0.005));
-        body->scale(cVector3d(0.005, 0.005, 0.005));
+        //body->scale(cVector3d(0.005, 0.005, 0.005));
+        body->scale(cVector3d(0.025, 0.025, 0.025));
         //body->rotate(cVector3d(0.0, 0.0, 1.0), PI/2.0);
         //body->extrude()
     }

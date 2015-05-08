@@ -18,6 +18,8 @@ string resourceRoot;
 #define WATER_SURFACE_TRANSPARENCY 0.6
 #define WATER_SURFACE_TRANSPARENCY_FROM_BELOW 0.3
 
+#define BODY_MODEL_OFFSET 0.6
+
 #include "fish.h"
 
 
@@ -71,6 +73,7 @@ public:
     virtual cMesh* addTriangle(cVector3d pos, cVector3d p0, cVector3d p1, cVector3d p2, cColorf color, bool transparent);
 
 	virtual void updateGraphics();
+    virtual void postUpdateGraphics();
 	virtual void updateHaptics(cGenericHapticDevice* hapticDevice, double timeStep, double totalTime);
 
     virtual void initBubbles();
@@ -200,6 +203,8 @@ void HelloWorld::initialize(cWorld* world, cCamera* camera)
 
     myFish = new fish();
     myFish->loadModel(myWorld);
+
+    myFish->body->offsetVertices(cVector3d(0.0, 0.0, -15.0), false, false);
 
     //myFish->body->scale(cVector3d(0.01, 0.01, 0.01), false);
     //myFish->body->scaleObject(cVector3d(0.01, 0.01, 0.01));
@@ -448,16 +453,20 @@ void HelloWorld::updateGraphics()
     //set camera
     myCamera->set(myFish->body->getPos() // camera position (eye)
                   //- 0.25 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
-                  - 0.35 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
-                  //- 15 * 0.25 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
+                  //- 0.35 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
+                  - 3 * 0.25 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
                   + cVector3d(0,0,0.02), //move it up a bit
                   myFish->body->getPos() + 2.25 * (1/myFish->vel.length()) * myFish->vel ,    // lookat position (target)
         cVector3d(0.0, 0.0, 1.0));   // direction of the "up" vector    
 
     //set body rotation
-    cMatrix3d rotValue = cMatrix3d();
+    //fix mismatched initial wrong rotation
+    /*cMatrix3d rotValue = cMatrix3d();
     rotValue.set(cVector3d(0.0, 0.0, 1.0), PI/2 + 0.0);
-    myFish->body->setRot(rotValue);
+    myFish->body->setRot(rotValue);*/
+
+    //move the body
+    //myFish->body->setPos(myFish->body->getPos() + cVector3d(0.0,0.0,-BODY_MODEL_OFFSET));
 
     //update shadow position
     double shadowX, shadowY, shadowZ;
@@ -470,7 +479,7 @@ void HelloWorld::updateGraphics()
         else
             shadowZ = 0.001;
 
-        mainShadowTriangles[i]->setPos(shadowX, shadowY, shadowZ);
+        //mainShadowTriangles[i]->setPos(shadowX, shadowY, shadowZ);
         //mainShadowTriangles[i]->scale(cVector3d(0.01, 0.01, 0.01));
 
 
@@ -492,6 +501,13 @@ void HelloWorld::updateGraphics()
     ss << "Fish pos z: " << myFish->body->getPos().z;
 	m_debugLabel->m_string = ss.str();
     m_debugLabel->setPos(10, 40, 0);
+}
+
+void HelloWorld::postUpdateGraphics()
+{
+    //move back fish
+
+    //myFish->body->setPos(myFish->body->getPos() - cVector3d(0.0,0.0,-BODY_MODEL_OFFSET));
 }
 
 void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeStep, double totalTime)

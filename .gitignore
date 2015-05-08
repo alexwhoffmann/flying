@@ -1,7 +1,6 @@
 *.user
 *~
 images_to_modify/*
-CMakeLists.txt
 CMakeLists.txt.user
 Day_Skybox.png
 __skybox_top.bmp

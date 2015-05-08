@@ -406,6 +406,8 @@ void updateGraphics(void)
 	{
 		glutPostRedisplay();
 	}
+
+    assignments[currentAssignment]->postUpdateGraphics();
 }
 
 //---------------------------------------------------------------------------
