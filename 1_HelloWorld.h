@@ -453,10 +453,10 @@ void HelloWorld::updateGraphics()
     //set camera
     myCamera->set(myFish->body->getPos() // camera position (eye)
                   //- 0.25 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
-                  //- 0.35 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
-                  - 3 * 0.25 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
+                  - 0.35 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
+                  //- 3 * 0.25 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
                   + cVector3d(0,0,0.02), //move it up a bit
-                  myFish->body->getPos() + 2.25 * (1/myFish->vel.length()) * myFish->vel ,    // lookat position (target)
+                  myFish->body->getPos() + 2.25 * (1/myFish->vel.length()) * myFish->vel ,    // look at position (target)
         cVector3d(0.0, 0.0, 1.0));   // direction of the "up" vector    
 
     //set body rotation

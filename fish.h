@@ -1,3 +1,4 @@
+#include "chai3d.h"
 class fish {
 private:
 public:
@@ -69,12 +70,29 @@ public:
 
         double newYRight, newZRight;
         double newYLeft, newZLeft;
-        double radians = relYPos * -maxAngle * PI / 180.0 ;
+        double radians = vel.y * relYPos *  PI / 180.0 ;
+        //double radians = relYPos * -maxAngle * PI / 180.0 ;
 
         //std::cout << "radians = " << radians << std::endl;
         newYRight = (cos(radians) * (finRadius + fishRadius));
         newZRight = (sin(radians) * (finRadius + fishRadius));
+
+// Rotate fish
+        // compute the next rotation configuration of the object
+        if (rotVel.length() > CHAI_SMALL)
+        {
+            body->rotate(cNormalize(rotVel), timeStep * rotVel.length());
+        }
         bodyFinR->setPos(body->getPos() + cVector3d(0, newYRight, newZRight));
+        cMatrix3d rotValue = cMatrix3d();
+        rotValue.set(cVector3d(0.0, 0.0, 1.0), radians);
+        cMatrix3d globalRot = body->getRot();
+        globalRot.mul(vel);
+        body->setRot(globalRot);
+         // body->rotate(rotValue);
+        //body->setRot(rotValue);
+
+
 
         newYLeft = -(cos(radians)*(finRadius+fishRadius));
         newZLeft = -(sin(radians)*(finRadius+fishRadius));
@@ -177,10 +195,8 @@ public:
         //body->setPos(pos);
         body->setPos(body->getPos() + timeStep*vel);
 
-        cMatrix3d rotValue = cMatrix3d();
-        rotValue.set(cVector3d(0,0,1.0), PI);
-        body->setRot(rotValue);
-
+       /*
+*/
         hapticForceVector += cVector3d(0.0, 0.0, -1*this->vel.z);
 
         return hapticForceVector;
@@ -227,8 +243,10 @@ void fish::loadModel(cWorld* world) {
         //body->scale(cVector3d(0.025, 0.025, 0.025));
         //body->rotate(cVector3d(0.0, 0.0, 1.0), PI/2.0);
         //body->extrude()
+        cMatrix3d rotValue = cMatrix3d();
+        rotValue.set(cVector3d(0,0,1.0), PI);
+        body->setRot(rotValue);
     }
-
 
     /*
     if (!fileload)
