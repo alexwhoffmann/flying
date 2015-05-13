@@ -17,6 +17,7 @@ public:
     cVector3d rot; //yaw, pitch, roll
     cVector3d rotVel;
     cVector3d rotF;
+    cVector3d bodyRot;
 
     double m; //mass
 
@@ -70,7 +71,7 @@ public:
 
         double newYRight, newZRight;
         double newYLeft, newZLeft;
-        double radians = vel.y * relYPos *  PI / 180.0 ;
+        double radians = timeStep * vel.length() * relYPos * PI / 180.0 ;
         //double radians = relYPos * -maxAngle * PI / 180.0 ;
 
         //std::cout << "radians = " << radians << std::endl;
@@ -79,20 +80,20 @@ public:
 
 // Rotate fish
         // compute the next rotation configuration of the object
-        if (rotVel.length() > CHAI_SMALL)
-        {
-            body->rotate(cNormalize(rotVel), timeStep * rotVel.length());
-        }
+        //body->rotate(cNormalize(vel), timeStep * radians);
+  /*      cVector3d moveRot = cVector3d(vel.x,vel.y,vel.z);
+        body->rotate(moveRot, timeStep * radians);
+        body->getRot();
+
         bodyFinR->setPos(body->getPos() + cVector3d(0, newYRight, newZRight));
-        cMatrix3d rotValue = cMatrix3d();
-        rotValue.set(cVector3d(0.0, 0.0, 1.0), radians);
-        cMatrix3d globalRot = body->getRot();
-        globalRot.mul(vel);
-        body->setRot(globalRot);
-         // body->rotate(rotValue);
-        //body->setRot(rotValue);
-
-
+*/
+       // body->rotate(rotValue);
+        cVector3d rotAxis = bodyRot;
+        cVector3d velTemp = vel;
+        rotAxis.cross(velTemp);   // cross product defines the rotation axis
+        double angle = bodyRot.dot(velTemp); // rotation angle
+        body->rotate(rotAxis, angle * PI / 180.0); // rotate mesh
+        bodyRot = vel;  // now the bodyrot should equal the direction of the mesh
 
         newYLeft = -(cos(radians)*(finRadius+fishRadius));
         newZLeft = -(sin(radians)*(finRadius+fishRadius));
@@ -213,6 +214,7 @@ fish::fish() {
     rot = cVector3d(-1, 0.0, 0);// assumed this is the direction the fish looks
     rotVel = cVector3d();
     rotF = cVector3d();
+    bodyRot = cVector3d(-1,0,0);
 
     m = 1.0; //1.0 kg
 
