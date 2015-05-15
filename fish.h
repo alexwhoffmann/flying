@@ -77,23 +77,28 @@ public:
         //std::cout << "radians = " << radians << std::endl;
         newYRight = (cos(radians) * (finRadius + fishRadius));
         newZRight = (sin(radians) * (finRadius + fishRadius));
+        bodyFinR->setPos(body->getPos() + cVector3d(0, newYRight, newZRight));
 
 // Rotate fish
         // compute the next rotation configuration of the object
-        //body->rotate(cNormalize(vel), timeStep * radians);
-  /*      cVector3d moveRot = cVector3d(vel.x,vel.y,vel.z);
-        body->rotate(moveRot, timeStep * radians);
-        body->getRot();
 
-        bodyFinR->setPos(body->getPos() + cVector3d(0, newYRight, newZRight));
-*/
+
+
+
+
+        cMatrix3d rotValue = cMatrix3d();
+        rotValue.set(cVector3d(0,0,1.0), PI);
+        body->setRot(rotValue);
+
        // body->rotate(rotValue);
         cVector3d rotAxis = bodyRot;
         cVector3d velTemp = vel;
+        velTemp.normalize();
         rotAxis.cross(velTemp);   // cross product defines the rotation axis
         double angle = bodyRot.dot(velTemp); // rotation angle
-        body->rotate(rotAxis, angle * PI / 180.0); // rotate mesh
+        body->rotate(rotAxis,angle * PI / 180.0); // rotate mesh
         bodyRot = vel;  // now the bodyrot should equal the direction of the mesh
+
 
         newYLeft = -(cos(radians)*(finRadius+fishRadius));
         newZLeft = -(sin(radians)*(finRadius+fishRadius));
@@ -245,11 +250,10 @@ void fish::loadModel(cWorld* world) {
         //body->scale(cVector3d(0.025, 0.025, 0.025));
         //body->rotate(cVector3d(0.0, 0.0, 1.0), PI/2.0);
         //body->extrude()
-        cMatrix3d rotValue = cMatrix3d();
-        rotValue.set(cVector3d(0,0,1.0), PI);
-        body->setRot(rotValue);
-    }
 
+        body->setUseCulling(false, true);
+
+    }
     /*
     if (!fileload)
     {

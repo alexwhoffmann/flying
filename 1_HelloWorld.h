@@ -283,6 +283,7 @@ void HelloWorld::createSeaFloor() {
             cVector3d p2 = cVector3d(0.0, triangleSize, sfm[t+1][i]);
 
             cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(0.51,0.26,0.073), false);
+            object->setUseCulling(false, true);
 
             /*object->m_texture = seafloorBitmap;
             object->m_texture->setSphericalMappingEnabled(true);
@@ -297,6 +298,7 @@ void HelloWorld::createSeaFloor() {
             p2 = cVector3d(0.0, triangleSize, sfm[t+1][i]);
 
             object = addTriangle(pos, p0, p1, p2, cColorf(0.44,0.17,0.035), false);
+            object->setUseCulling(false, true);
             /*object->m_texture = seafloorBitmap;
             object->m_texture->setSphericalMappingEnabled(true);
             object->setUseTexture(true);*/
