@@ -10,10 +10,10 @@
 string resourceRoot;
 #define RESOURCE_PATH(p)    (char*)((resourceRoot+string(p)).c_str())
 
-#define seaFloorZLevel -14.0
-#define numTilesX 80
-#define numTilesY 80
-#define triangleSize 5.5
+#define seaFloorZLevel -15.0
+#define numTilesX 70
+#define numTilesY 70
+#define triangleSize 9.5
 
 #define WATER_SURFACE_TRANSPARENCY 0.6
 #define WATER_SURFACE_TRANSPARENCY_FROM_BELOW 0.3
@@ -81,6 +81,7 @@ public:
     virtual void applyTextureToBubble(cShapeSphere* bubble);
     virtual double getRandom();
     virtual void createSeaFloor();
+    virtual void createSeaFloorTop();
     virtual void createWaterSurface();
     virtual void createShadow();
 };
@@ -95,7 +96,66 @@ void HelloWorld::initBubbles() {
         fileload = bubbleBitmap->loadFromFile("../haptics_lab1/bubble.bmp");
         #endif
     }
-	
+
+
+    cShapeSphere* bubble;
+
+    //+-(numTilesX * triangleSize) / 2;
+    double rx = (numTilesX * triangleSize) / 2;
+    double ry = (numTilesY * triangleSize) / 2;
+
+    cMaterial c;
+
+    //zeroth bubble, black, near start
+    bubble = new cShapeSphere(2.0);
+    bubble->setPos(cVector3d(-35, 0, -5));
+    bubble->setUseCulling(true); //enables us to see the bubble when we're inside
+    c.m_ambient.set(0.0, 0.0, 0.0);
+    bubble->setMaterial(c);
+    myWorld->addChild(bubble);
+
+    //first bubble, red
+    bubble = new cShapeSphere(2.0);
+    bubble->setPos(cVector3d(-0.3*rx, -0.5*ry, -4));
+    bubble->setUseCulling(true); //enables us to see the bubble when we're inside
+    c.m_ambient.set(1.0, 0.0, 0.0);
+    bubble->setMaterial(c);
+    myWorld->addChild(bubble);
+
+    //second bubble, blue
+    bubble = new cShapeSphere(2.0);
+    bubble->setPos(cVector3d(0.6*rx, 0.6*ry, -5));
+    bubble->setUseCulling(true); //enables us to see the bubble when we're inside
+    c.m_ambient.set(0.0, 0.1, 1.0);
+    bubble->setMaterial(c);
+    myWorld->addChild(bubble);
+
+    //third bubble, green-ish near top
+    bubble = new cShapeSphere(2.0);
+    bubble->setPos(cVector3d(-0.7*rx, 0.9*ry, -1));
+    bubble->setUseCulling(true); //enables us to see the bubble when we're inside
+    c.m_ambient.set(0.3, 0.9, 0.0);
+    bubble->setMaterial(c);
+    myWorld->addChild(bubble);
+
+    //fourth bubble, yellow near bottom
+    bubble = new cShapeSphere(2.0);
+    bubble->setPos(cVector3d(0.7*rx, -0.6*ry, 6));
+    bubble->setUseCulling(true); //enables us to see the bubble when we're inside
+    c.m_ambient.set(1.0, 1.0, 0.3);
+    bubble->setMaterial(c);
+    myWorld->addChild(bubble);
+
+    /*bubble->m_texture = bubbleBitmap;
+    bubble->m_texture->setSphericalMappingEnabled(true);
+    bubble->setUseTexture(true);
+    bubble->setTransparencyLevel(0.6, true, true);
+
+    bubble->setUseVertexColors(true);
+    */
+
+
+    /*
     int numBubbles = 0;
     double x, y, z;
 
@@ -116,6 +176,7 @@ void HelloWorld::initBubbles() {
         applyTextureToBubble(bubble);
         myWorld->addChild(bubble);
     }
+    */
 }
 
 double HelloWorld::getRandom() { //returns a value between 0.0 and 1.0
@@ -223,6 +284,7 @@ void HelloWorld::initialize(cWorld* world, cCamera* camera)
     myWorld->addChild(myFish->bodyFinL);
 
     createSeaFloor();
+    createSeaFloorTop();
     createWaterSurface();
     createShadow();
 }
@@ -235,28 +297,26 @@ void HelloWorld::createSeaFloor() {
     }
 
     //create matrix to be used for terrain triangles
-    //int numTilesX = 80;
-    //int numTilesY = 80;
-    //double sfm[numTilesX][numTilesY]; //sea floor matrix
-
     for (int i = 0; i < numTilesX; i++) {
         for (int t = 0; t < numTilesY; t++) {
             for (int its = 0; its < 10; its++) {
                 if (its == 0) {
                     sfm[i][t] = 0.0;
                 } else { //perturb it
-                    sfm[i][t] += 0.6*getRandom();
+                    //sfm[i][t] += 0.6*getRandom();
+                    sfm[i][t] += 1.6*getRandom();
                 }
             }
         }
     }
 
-    for (int its = 0; its < 25; its++) {
+    for (int its2 = 0; its2 < 25; its2++) {
         int x = (rand() % (numTilesX-1))-1;
         int y = (rand() % (numTilesY-1))-1;
         sfm[x][y] += 2.3 + 1.9*getRandom();
 
-        double smallBump = 1.5;
+        //double smallBump = 1.5;
+        double smallBump = 3.5;
 
         sfm[x+1][y] += smallBump + 0.7*getRandom();
         sfm[x][y+1] += smallBump + 0.7*getRandom();
@@ -276,13 +336,14 @@ void HelloWorld::createSeaFloor() {
         for (int t = 0; t < (numTilesY-1); t++) {
             cVector3d pos = cVector3d(seaFloorOffsetX+i*triangleSize,
                                       seaFloorOffsetY+t*triangleSize,
-                                      seaFloorZLevel);
+                                      seaFloorZLevel-5);
 
             cVector3d p0 = cVector3d(0.0, 0.0, sfm[t][i]);
             cVector3d p1 = cVector3d(triangleSize, 0.0, sfm[t][i+1]);
             cVector3d p2 = cVector3d(0.0, triangleSize, sfm[t+1][i]);
 
             cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(0.51,0.26,0.073), false);
+            object->setUseCulling(false, true);
 
             /*object->m_texture = seafloorBitmap;
             object->m_texture->setSphericalMappingEnabled(true);
@@ -297,6 +358,7 @@ void HelloWorld::createSeaFloor() {
             p2 = cVector3d(0.0, triangleSize, sfm[t+1][i]);
 
             object = addTriangle(pos, p0, p1, p2, cColorf(0.44,0.17,0.035), false);
+            object->setUseCulling(false, true);
             /*object->m_texture = seafloorBitmap;
             object->m_texture->setSphericalMappingEnabled(true);
             object->setUseTexture(true);*/
@@ -304,6 +366,90 @@ void HelloWorld::createSeaFloor() {
         }
     }
 }
+
+void HelloWorld::createSeaFloorTop() {
+    //texture stuff
+    seafloorBitmap = new cTexture2D();
+    if (!seafloorBitmap->loadFromFile("../flying/out_snd1.bmp")) {
+        std::cout << "Couldn't load snd" << std::endl;
+    }
+
+    int numTilesX2 = numTilesX / 1;
+    int numTilesY2 = numTilesY / 1;
+    int triangleSize2 = triangleSize*1;
+
+    //create matrix to be used for terrain triangles
+    for (int i = 0; i < numTilesX2; i++) {
+        for (int t = 0; t < numTilesY2; t++) {
+            for (int its = 0; its < 10; its++) {
+                if (its == 0) {
+                    sfm[i][t] = 0.0;
+                } else { //perturb it
+                    //sfm[i][t] += 0.6*getRandom();
+                    sfm[i][t] += 1.9*getRandom();
+                }
+            }
+        }
+    }
+
+    for (int its2 = 0; its2 < 25; its2++) {
+        int x = (rand() % (numTilesX2-1))-1;
+        int y = (rand() % (numTilesY2-1))-1;
+        sfm[x][y] += 2.8 + 1.9*getRandom();
+
+        //double smallBump = 1.5;
+        double smallBump = 4.5;
+
+        sfm[x+1][y] += smallBump + 0.7*getRandom();
+        sfm[x][y+1] += smallBump + 0.7*getRandom();
+        sfm[x-1][y] += smallBump + 0.7*getRandom();
+        sfm[x][y-1] += smallBump + 0.7*getRandom();
+    }
+
+
+    //adds a bunch of triangles
+    //double triangleSize = 5.5;
+    //double seaFloorZLevel = -15.0;
+
+    double seaFloorOffsetX = -(numTilesX2 * triangleSize2) / 2;
+    double seaFloorOffsetY = -(numTilesY2 * triangleSize2) / 2;
+
+    for (int i = 0; i < (numTilesX2-1); i++) {
+        for (int t = 0; t < (numTilesY2-1); t++) {
+            cVector3d pos = cVector3d(seaFloorOffsetX+i*triangleSize2,
+                                      seaFloorOffsetY+t*triangleSize2,
+                                      -seaFloorZLevel - 9.0);
+
+            cVector3d p0 = cVector3d(0.0, 0.0, sfm[t][i]);
+            cVector3d p1 = cVector3d(triangleSize2, 0.0, sfm[t][i+1]);
+            cVector3d p2 = cVector3d(0.0, triangleSize2, sfm[t+1][i]);
+
+            cMesh* object = addTriangle(pos, p0, p1, p2, cColorf(0.51,0.26,0.073), false);
+            object->setUseCulling(false, true);
+
+            /*object->m_texture = seafloorBitmap;
+            object->m_texture->setSphericalMappingEnabled(true);
+            object->m_texture->setWrapMode(GL_CLAMP, GL_CLAMP);
+            object->setUseTexture(true);*/
+
+            terrainTriangleIndices.push_back(object);
+
+            //add opposite side
+            p0 = cVector3d(triangleSize2, 0.0, sfm[t][i+1]);
+            p1 = cVector3d(triangleSize2, triangleSize2, sfm[t+1][i+1]);
+            p2 = cVector3d(0.0, triangleSize2, sfm[t+1][i]);
+
+            object = addTriangle(pos, p0, p1, p2, cColorf(0.44,0.17,0.035), false);
+            object->setUseCulling(false, true);
+            /*object->m_texture = seafloorBitmap;
+            object->m_texture->setSphericalMappingEnabled(true);
+            object->setUseTexture(true);*/
+            terrainTriangleIndices.push_back(object);
+        }
+    }
+}
+
+
 /*
 
 */
@@ -315,11 +461,11 @@ void HelloWorld::createWaterSurface() {
         std::cout << "Couldn't load skybox_top.bmp" << std::endl;
     }
 
-    double waterSurfaceXSize = 400.0;
-    double waterSurfaceYSize = 400.0;
+    double waterSurfaceXSize = 1600.0;
+    double waterSurfaceYSize = 1600.0;
 
-    double skySurfaceXSize = 800.0;
-    double skySurfaceYSize = 800.0;
+    double skySurfaceXSize = 1600.0;
+    double skySurfaceYSize = 1600.0;
 
     cVector3d pos, p0, p1, p2;
     cMesh* object;
@@ -327,7 +473,7 @@ void HelloWorld::createWaterSurface() {
     /////////////
     // Skybox
     //
-    double SKYBOX_HEIGHT = 22.0;
+    double SKYBOX_HEIGHT = 96.0;
     pos = cVector3d(-skySurfaceXSize/2.0, -skySurfaceYSize/2.0, SKYBOX_HEIGHT);
 
     //FIRST TRIANGLE
@@ -335,11 +481,8 @@ void HelloWorld::createWaterSurface() {
     p1 = cVector3d(0.0, skySurfaceYSize, 0.0);
     p2 = cVector3d(skySurfaceXSize, 0.0, 0.0);
     object = addTriangle(pos, p0, p1, p2, cColorf(1.0, 1.0, 1.0), false);
-    object->m_texture = skyboxTopBitmap;
-    object->m_texture->setSphericalMappingEnabled(true);
-    //object->m_texture->setWrapMode(GL_CLAMP, GL_CLAMP);
-    object->m_texture->setWrapMode(GL_REPEAT, GL_REPEAT);
-    //object->setUseVertexColors(false);
+    object->setTexture(skyboxTopBitmap);
+    //object->m_texture = skyboxTopBitmap;
     object->setUseTexture(true);
 
     //SECOND TRIANGLE
@@ -349,11 +492,16 @@ void HelloWorld::createWaterSurface() {
     object = addTriangle(pos, p0, p1, p2, cColorf(1.0, 1.0, 1.0), false);
     object->m_texture = skyboxTopBitmap;
     object->m_texture->setSphericalMappingEnabled(true);
-    //object->m_texture->setWrapMode(GL_CLAMP, GL_CLAMP);
-    object->m_texture->setWrapMode(GL_REPEAT, GL_REPEAT);
-    //object->setUseVertexColors(false);
-    object->setUseTexture(true);
+    object->setUseTexture(true, false);
 
+    //FIRST TRIANGLE OF -x,y DIRECTION
+    /*pos = cVector3d(0, 0, 0);
+    p0 = cVector3d(-skySurfaceXSize/2, skySurfaceYSize/2, 0.0); //bottom-left
+    p1 = cVector3d(-skySurfaceXSize/2, -skySurfaceYSize/2, 0.0); //bottom-right
+    p0 = cVector3d(-skySurfaceXSize/2, skySurfaceYSize/2, SKYBOX_HEIGHT); //top-left
+    object = addTriangle(pos, p2, p1, p0, cColorf(1.0, 1.0, 1.0), false);
+    object->m_texture = skyboxTopBitmap;
+    object->setUseTexture(true);*/
 
     ///////////////
     // Water Surface
@@ -394,7 +542,7 @@ void HelloWorld::createShadow() {
     int N = 36;
     double a1, a2;
     for (int i = 0; i < N; i++) {
-        r = 0.014;
+        r = 4.254;
         a1 = 2*PI * ((double)i)/N;
         a2 = 2*PI * ((double)(i+1))/N;
         cVector3d pos = cVector3d(0.0, 0.0, 0.00);
@@ -453,7 +601,7 @@ void HelloWorld::updateGraphics()
     //set camera
     myCamera->set(myFish->body->getPos() // camera position (eye)
                   //- 0.25 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
-                  - 0.35 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
+                  - (1+0.1*myFish->vel.length()) * 0.35 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
                   //- 3 * 0.25 * (1/myFish->vel.length()) * myFish->vel //move it behind the fish
                   + cVector3d(0,0,0.02), //move it up a bit
                   myFish->body->getPos() + 2.25 * (1/myFish->vel.length()) * myFish->vel ,    // look at position (target)
@@ -473,6 +621,9 @@ void HelloWorld::updateGraphics()
     for (int i = 0; i < mainShadowTriangles.size(); i++) {
         shadowX = myFish->body->getPos().x;
         shadowY = myFish->body->getPos().y;
+
+        shadowX += 2*myFish->vel.x;
+        shadowY += 2*myFish->vel.y;
 
         if (myFish->body->getPos().z < 0.0) //under the water
             shadowZ = -1000.0;
@@ -498,7 +649,10 @@ void HelloWorld::updateGraphics()
 
 
     std::stringstream ss;
-    ss << "Fish pos z: " << myFish->body->getPos().z;
+    //ss << "Fish pos z: " << myFish->body->getPos().z;
+    ss << "Fish pos x: " << myFish->body->getPos().x <<
+          " y: " << myFish->body->getPos().y <<
+          " z: " << myFish->body->getPos().z;
 	m_debugLabel->m_string = ss.str();
     m_debugLabel->setPos(10, 40, 0);
 }
@@ -548,13 +702,14 @@ void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeSt
     myFish->updateFishFins(timeStep, hapticPosition);
     cVector3d hapticForceVector = myFish->updatePhysics(timeStep, sfm);
 
-    double spdMultiplier = 14 * myFish->vel.length();
+    double spdMultiplier = 10 * myFish->vel.length();
     double x, y;
-    double exponent = 0.7;
-    if (hapticPosition.x > 0.0)
-        x = pow(hapticPosition.x, exponent);
+    double exponent = 1.0;
+    double s = 0.02;
+    if (hapticPosition.x > -s)
+        x = pow(hapticPosition.x + s, exponent);
     else
-        x = -pow(-hapticPosition.x, exponent);
+        x = -pow(-(hapticPosition.x + s), exponent);
 
     if (hapticPosition.y > 0.0)
         y = pow(hapticPosition.y, exponent);
@@ -565,9 +720,12 @@ void HelloWorld::updateHaptics(cGenericHapticDevice* hapticDevice, double timeSt
         spdMultiplier *= 0.15;
     }
 
+    x *= 30.0;
     hapticForceVector += cVector3d(-0.3*spdMultiplier*x,
                                    -spdMultiplier*y,
                                    0.0);
+
+    //hapticForceVector *= 0.0;
 
     hapticDevice->setForce(hapticForceVector);
 }

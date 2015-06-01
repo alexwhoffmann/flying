@@ -77,23 +77,36 @@ public:
         //std::cout << "radians = " << radians << std::endl;
         newYRight = (cos(radians) * (finRadius + fishRadius));
         newZRight = (sin(radians) * (finRadius + fishRadius));
+        bodyFinR->setPos(body->getPos() + cVector3d(0, newYRight, newZRight));
 
 // Rotate fish
         // compute the next rotation configuration of the object
-        //body->rotate(cNormalize(vel), timeStep * radians);
-  /*      cVector3d moveRot = cVector3d(vel.x,vel.y,vel.z);
-        body->rotate(moveRot, timeStep * radians);
-        body->getRot();
 
-        bodyFinR->setPos(body->getPos() + cVector3d(0, newYRight, newZRight));
-*/
+
+
+
+
+        cMatrix3d rotValue = cMatrix3d();
+        double a = atan2(vel.y, vel.x);
+        rotValue.set(cVector3d(0,0,1.0), 0*PI+a);
+        body->setRot(rotValue);
+
        // body->rotate(rotValue);
         cVector3d rotAxis = bodyRot;
         cVector3d velTemp = vel;
+        velTemp.normalize();
         rotAxis.cross(velTemp);   // cross product defines the rotation axis
         double angle = bodyRot.dot(velTemp); // rotation angle
-        body->rotate(rotAxis, angle * PI / 180.0); // rotate mesh
+        body->rotate(rotAxis,angle * PI / 180.0); // rotate mesh
         bodyRot = vel;  // now the bodyrot should equal the direction of the mesh
+
+        //around z axis
+        //cMatrix3d rotValue = cMatrix3d();
+        //double a = atan2(vel.y, vel.x);
+        //rotValue.set(cVector3d(0,0,1.0), a);
+
+
+
 
         newYLeft = -(cos(radians)*(finRadius+fishRadius));
         newZLeft = -(sin(radians)*(finRadius+fishRadius));
@@ -106,7 +119,7 @@ public:
 
         //add forces to fish
         //forward/backward movement
-        double pushStrength = timeStep * 2900*relXPos;
+        double pushStrength = timeStep * 3400*relXPos*1.5;
         cVector3d pushDirection = -pushStrength * ((1/vel.length())*vel);
         //cVertex
 
@@ -124,8 +137,8 @@ public:
 
         if (vel.length() > 0.03) {
             //rotation around z axis
-            double fx = 1.8 * relYPos * pow(vel.y / vel.length(), 1.0);
-            double fy = 1.8 * relYPos * pow(-vel.x / vel.length(), 1.0);
+            double fx = 2.4*1.8 * relYPos * pow(vel.y / vel.length(), 1.0);
+            double fy = 2.4*1.8 * relYPos * pow(-vel.x / vel.length(), 1.0);
             f.add(fx, fy, 0);
 
 
@@ -154,13 +167,13 @@ public:
     cVector3d updatePhysics(double timeStep, double sfm[numTilesX][numTilesY]) {
         cVector3d hapticForceVector;
 
-        //add gravity
+        //add gravity when above water
         if (this->body->getPos().z > 0.0) {
             if (vel.z > 0) { //flying upwards, add gravity
-                cVector3d g = cVector3d(0.0, 0.0, -0.2*9.82);
+                cVector3d g = cVector3d(0.0, 0.0, -0.4*9.82);
                 f += m * g;
             } else { //flying downwards, constant downvard velocity
-                vel += cVector3d(0.0, 0.0, -timeStep*1.5);
+                vel += cVector3d(0.0, 0.0, -timeStep*1.2);
             }
         } else { //might be below sea floor
 
@@ -176,8 +189,18 @@ public:
             double z = seaFloorZLevel + 3.5;
 
             if (body->getPos().z < z) { //there was a collision with the seafloor
-                f += cVector3d(0.0, 0.0, 7.0);
-                hapticForceVector += cVector3d(0.0, 0.0, 9.0);
+                f += cVector3d(0.0, 0.0, 11.0);
+                hapticForceVector += cVector3d(0.0, 0.0, 18.0);
+            }
+        }
+
+        double abz = this->body->getPos().z;
+        if (abz < 0) abz *= -1;
+        if (abz < 0.35) {
+            hapticForceVector += cVector3d(0.0, 0.0, 15.0);
+
+            if (vel.z < 0) { //Splashed into the water
+                hapticForceVector += cVector3d(0.0, 0.0, 348.0);
             }
         }
 
@@ -199,6 +222,8 @@ public:
        /*
 */
         hapticForceVector += cVector3d(0.0, 0.0, -1*this->vel.z);
+
+        //hapticForceVector += cVector3d(-4*vel.length(), 0, 0);
 
         return hapticForceVector;
     }
@@ -245,11 +270,10 @@ void fish::loadModel(cWorld* world) {
         //body->scale(cVector3d(0.025, 0.025, 0.025));
         //body->rotate(cVector3d(0.0, 0.0, 1.0), PI/2.0);
         //body->extrude()
-        cMatrix3d rotValue = cMatrix3d();
-        rotValue.set(cVector3d(0,0,1.0), PI);
-        body->setRot(rotValue);
-    }
 
+        body->setUseCulling(false, true);
+
+    }
     /*
     if (!fileload)
     {

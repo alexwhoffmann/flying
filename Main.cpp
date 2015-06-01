@@ -262,7 +262,7 @@ void reset(size_t assignmentId)
 
 	// Set the near and far clipping planes of the camera
 	// anything in front/behind these clipping planes will not be rendered
-    camera->setClippingPlanes(0.01, 40.0);
+    camera->setClippingPlanes(0.01, 300.0);
 
 	// Create a light source and attach it to the camera
 	light = new cLight(world);
@@ -370,7 +370,8 @@ void updateGraphics(void)
 
 		position = position * 1000.0; // Convert to mm
 		char buffer[128];
-		sprintf(buffer, "Device position: (%.2lf, %.2lf, %.2lf) mm", position.x, position.y, position.z);
+        //sprintf(buffer, "Device position: (%.2lf, %.2lf, %.2lf) mm", position.x, position.y, position.z);
+        sprintf(buffer, "Position: (%.2lf, %.2lf, %.2lf) mm", position.x, position.y, position.z);
 
 		//Set the text to the label
 		positionLabel->m_string = buffer;
